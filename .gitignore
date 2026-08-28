@@ -1,0 +1,22 @@
+# 运行时数据（每日自动生成，不入库）
+samples/
+reviews/
+model_state.json
+iter_log.jsonl
+logs/*.log
+logs/*.json
+postmortem_traj.json
+
+# 调试/探测脚本
+api_probe*.js
+seed_review.js
+postmortem*.js
+verify*.txt
+check.json
+ps_check.txt
+radar.out
+bt_*.json
+
+# 系统
+.DS_Store
+Thumbs.db

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>进攻分时雷达</title>
+<style>
+  body { margin:0; padding:16px 20px; background:#f4f3ef; color:#2c2c2a; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; font-size:13px; }
+  h1 { font-size:16px; font-weight:500; margin:0 0 2px; }
+  .sub { color:#6a6a66; font-size:12px; margin-bottom:14px; }
+  .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; }
+  .lv-strong { background:#e24b4a; color:#fff; }
+  .lv-watch { background:#ef9f27; color:#fff; }
+  .lv-none { background:#d3d1c7; color:#5f5e5a; }
+  .card { background:#fff; border:0.5px solid #d8d6cd; border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+  .card h2 { font-size:13px; font-weight:500; margin:0 0 8px; color:#444441; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  th { text-align:left; font-size:11px; color:#888780; font-weight:400; padding:4px 6px; border-bottom:1px solid #eceae2; }
+  td { padding:6px; border-bottom:1px solid #f0efe8; vertical-align:middle; }
+  .up { color:#c2362f; font-weight:500; } .flat { color:#888780; }
+  .tag { display:inline-block; background:#eeedfe; color:#3c3489; border-radius:4px; padding:0 5px; margin:1px 3px 1px 0; font-size:11px; }
+  .tag.warn { background:#fcebeb; color:#791f1f; }
+  .alert-item { padding:5px 0; border-bottom:1px solid #f0efe8; }
+  .alert-item:last-child { border-bottom:none; }
+  .score-big { font-size:17px; font-weight:500; }
+  .muted { color:#9a9990; font-size:11px; }
+  .detail { font-size:11px; color:#6a6a66; }
+  svg { display:block; }
+  .empty { color:#9a9990; padding:10px 0; }
+  .prob { font-weight:500; color:#993c1d; }
+  .probbar { display:inline-block; height:8px; border-radius:4px; background:#f0997b; vertical-align:middle; min-width:3px; }
+  .conf { font-size:11px; color:#854f0b; }
+  .sig { display:inline-block; background:#faf1e0; color:#633806; border-radius:4px; padding:0 5px; margin:1px 3px 1px 0; font-size:11px; }
+  /* 操作栏按钮 */
+  .actionbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:8px; border:0.5px solid #d8d6cd; background:#fff; color:#444441; font-size:12px; font-family:inherit; cursor:pointer; transition:background 0.15s, border-color 0.15s; }
+  .btn:hover { background:#faf9f5; border-color:#b4b2a9; }
+  .btn:active { background:#f1efe8; }
+  .btn:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn.primary { border-color:#f0997b; color:#993c1d; background:#fdf6f2; }
+  .btn.primary:hover { background:#faf1e0; }
+  .btn.danger { border-color:#f09595; color:#791f1f; }
+  .btn.danger:hover { background:#fcebeb; }
+  .btn .ico { font-size:13px; line-height:1; }
+  #actionMsg { font-size:11px; color:#888780; align-self:center; min-width:120px; }
+</style>
+</head>
+<body>
+<h1>进攻分时雷达 <span id="modelBadge" class="badge lv-none" style="font-size:11px"></span></h1>
+<div class="sub" id="meta">加载中…</div>
+
+<div class="actionbar">
+  <button class="btn primary" id="btnScan" onclick="doAction('scan')"><span class="ico">▶</span>立即强扫一轮</button>
+  <button class="btn" id="btnReview" onclick="doAction('review')"><span class="ico">Σ</span>手动复盘+迭代</button>
+  <button class="btn" id="btnReport" onclick="window.open('/api/report','_blank')"><span class="ico">≡</span>今日复盘报告</button>
+  <button class="btn danger" id="btnRestart" onclick="doAction('restart')"><span class="ico">↻</span>重启服务</button>
+  <span id="actionMsg"></span>
+</div>
+
+<div class="card" style="border:1.5px solid #f0997b">
+  <h2>每日候选股（按涨停概率排序 · 概率=模型输出并经校准 · 置信度=概率×模型成熟度）</h2>
+  <div id="top"><div class="empty">等待首轮评分…</div></div>
+</div>
+
+<div class="card">
+  <h2>报警时间线（规则分≥80 且 概率≥阈值 双确认 · 每档每日只报一次）</h2>
+  <div id="alerts"><div class="empty">暂无报警</div></div>
+</div>
+
+<div class="card">
+  <h2>竞价抢筹快照（自建 · 每日 9:25-9:45 抓一次后冻结 | 竞价高开2~9% + 成交额分市值门槛 + 排一字/ST/科创）</h2>
+  <div id="jj"><div class="empty">今日快照尚未生成（9:25-9:45 首轮扫描自动抓取）</div></div>
+</div>
+
+<div class="card">
+  <h2>上一轮查询日志（候选池 → 过滤 → 评分 的完整漏斗）</h2>
+  <div id="scanlog"><div class="empty">等待首轮扫描…</div></div>
+</div>
+
+<div class="card">
+  <h2>候选评分榜（涨停生态 + 成交额榜前80 + 自选 | 一字/科创/已封死不参评；盘中封死涨停的保留在榜但停评分，未涨停的持续评分）</h2>
+  <table>
+    <colgroup>
+      <col style="width:120px"><col style="width:52px"><col style="width:70px"><col style="width:64px"><col style="width:52px"><col style="width:46px"><col style="width:110px"><col>
+    </colgroup>
+    <thead><tr><th>标的</th><th>来源</th><th>现价/涨幅</th><th>换手</th><th>评分</th><th>档位</th><th>分时得分线</th><th>特征</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="8" class="empty">等待首轮扫描…</td></tr></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>评分口径（基础100 + 量价配合奖励≤20，封顶100）</h2>
+  <div class="detail">
+    高开10 + 洗盘深度与量能20 + 关键防守（不破前低，一票否决）20 + V型收复竞价价20 + 低点抬高15 + 量结构15。<br>
+    量价配合奖励（量化拉升指纹）：放量脉冲5 + 脉冲递升5 + 脉冲后守稳5 + 近20根量价同步5；奖励≥15 贴"量化攻击结构"标签。<br>
+    否决项（对总分一并封顶）：破前低>3%封顶40 / 翻绿封顶50 / 洗盘后创新低封顶45 / 收复后不足8根封顶75。强势≥80，关注≥60。
+  </div>
+</div>
+
+<script>
+function spark(series, strong) {
+  if (!series || series.length < 2) return '';
+  const w = 100, h = 26;
+  const vals = series.map(s => s.score);
+  const min = Math.min(...vals, 0), max = Math.max(...vals, 100);
+  const span = (max - min) || 1;
+  const pts = series.map((s, i) =>
+    (i / (series.length - 1) * w).toFixed(1) + ',' + (h - (s.score - min) / span * (h - 4) - 2).toFixed(1)
+  ).join(' ');
+  const color = strong ? '#e24b4a' : '#ef9f27';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/><line x1="0" x2="${w}" y1="${h - (80 - min) / span * (h - 4) - 2}" y2="${h - (80 - min) / span * (h - 4) - 2}" stroke="#d8d6cd" stroke-dasharray="3 3" stroke-width="1"/></svg>`;
+}
+// ---------- 页签标题提醒 ----------
+const BASE_TITLE = '进攻分时雷达';
+let titleTimer = null;
+function startTitleBlink(msg) {
+  if (titleTimer) { clearInterval(titleTimer); titleTimer = null; }
+  let flip = false;
+  const blink = () => { document.title = flip ? BASE_TITLE : msg; flip = !flip; };
+  blink();
+  titleTimer = setInterval(blink, 900);
+}
+function stopTitleBlink() {
+  if (!titleTimer) return;
+  clearInterval(titleTimer);
+  titleTimer = null;
+  document.title = BASE_TITLE;
+}
+// 回到这个页签就停止闪烁（说明你已经看到了）+ 立刻刷新一次数据
+// （浏览器会冻结后台标签页的定时器，回前台必须主动补拉，否则数据显得不更新）
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { stopTitleBlink(); load(); }
+});
+window.addEventListener('focus', () => { stopTitleBlink(); load(); });
+
+function seenKey(day) { return 'radarSeen_' + day; }
+function getSeen(day) {
+  try { return new Set(JSON.parse(localStorage.getItem(seenKey(day)) || '[]')); } catch (e) { return new Set(); }
+}
+function setSeen(day, set) { localStorage.setItem(seenKey(day), JSON.stringify([...set].slice(-200))); }
+
+// ---------- 操作栏按钮 ----------
+let actionBusy = false;
+function setActionBusy(b) {
+  actionBusy = b;
+  ['btnScan', 'btnReview', 'btnRestart'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = b; });
+}
+function setActionMsg(t, color) {
+  const el = document.getElementById('actionMsg');
+  if (el) { el.textContent = t; el.style.color = color || '#888780'; }
+}
+async function doAction(name) {
+  if (actionBusy) return;
+  setActionBusy(true);
+  setActionMsg('执行中…');
+  try {
+    const res = await fetch('/api/' + name);
+    const txt = await res.text();
+    if (name === 'scan') {
+      if (txt === 'closed') setActionMsg('非交易时段，扫描已拦截', '#ba7517');
+      else setActionMsg('已触发强扫，几秒后刷新', '#3b6d11');
+      setTimeout(load, 3000);
+    } else if (name === 'review') {
+      setActionMsg('复盘+迭代已触发，约需10秒', '#3b6d11');
+      setTimeout(load, 8000);
+    } else if (name === 'restart') {
+      setActionMsg('正在重启服务…3秒后刷新', '#ba7517');
+      setTimeout(load, 3500);
+    } else {
+      setActionMsg(txt === 'ok' ? '完成' : txt);
+    }
+  } catch (e) {
+    if (name === 'restart') { setActionMsg('服务已断开，正在重启…', '#ba7517'); setTimeout(load, 3500); }
+    else setActionMsg('请求失败：' + e.message, '#791f1f');
+  } finally {
+    setTimeout(() => setActionBusy(false), name === 'restart' ? 4000 : 2000);
+  }
+}
+
+let firstLoad = true;
+async function load() {
+  try {
+    const res = await fetch('/api/data');
+    const d = await res.json();
+
+    // 新报警检测：与本地已见集合比对
+    const seen = getSeen(d.day);
+    const fresh = d.alerts.filter(a => !seen.has(a.code + ':' + a.level));
+    if (fresh.length) {
+      fresh.forEach(a => seen.add(a.code + ':' + a.level));
+      setSeen(d.day, seen);
+      // 首次打开页面时只静默记录不闪（报警本来就在页面上）
+      if (!firstLoad && document.hidden) {
+        const top = fresh[0];
+        startTitleBlink(`【${top.level}${top.score}分】${top.name} 被雷达选中`);
+      }
+    }
+    firstLoad = false;
+
+    // 顶部状态行 + 下一轮扫描倒计时
+    const cd = d.nextScanAt > d.ts ? Math.max(0, Math.round((d.nextScanAt - d.ts) / 1000)) : null;
+    document.getElementById('meta').textContent =
+      `交易日 ${d.day} · 第 ${d.round} 轮 · 最后扫描 ${new Date(d.ts).toLocaleTimeString('zh-CN', {hour12:false})} · ${d.running ? '扫描中…' : (cd !== null ? `下一轮约 ${Math.floor(cd/60)} 分 ${cd%60} 秒后` : '待启动')} · 扫描间隔 2~5 分钟随机`;
+
+    const al = document.getElementById('alerts');
+    al.innerHTML = d.alerts.length ? d.alerts.map(a =>
+      `<div class="alert-item"><b>${a.t}</b> <span class="badge ${a.level==='强势'?'lv-strong':'lv-watch'}">${a.level} ${a.score}</span> ` +
+      `<b>${a.name}</b>(${a.code.slice(2)}) ${a.pct>=0?'+':''}${a.pct}% · ${a.src}${a.lbc>1?'·'+a.lbc+'连板':''} · 概率${Math.round((a.prob||0)*100)}% 置信${Math.round((a.confidence||0)*100)}% · <span class="muted">${a.signals||a.tags||'-'}</span></div>`
+    ).join('') : '<div class="empty">暂无报警——规则分≥80且概率达标会第一时间列出，并闪动页签标题提醒你</div>';
+
+    // 每日候选股（概率榜）
+    const tp = document.getElementById('top');
+    if (d.topList && d.topList.length) {
+      tp.innerHTML = `
+        <table>
+          <colgroup><col style="width:36px"><col style="width:130px"><col style="width:70px"><col style="width:150px"><col style="width:90px"><col></colgroup>
+          <thead><tr><th>#</th><th>标的</th><th>现价/涨幅</th><th>涨停概率</th><th>置信度</th><th>核心信号</th></tr></thead>
+          <tbody>${d.topList.map((s, i) => `
+            <tr>
+              <td class="muted">${i + 1}</td>
+              <td><b>${s.name}</b><br><span class="muted">${s.code.slice(2)}${s.lbc > 1 ? ' · ' + s.lbc + '连板' : ''}${s.hybk ? ' · ' + s.hybk : ''}</span></td>
+              <td class="${s.pct >= 0 ? 'up' : 'flat'}">${s.price.toFixed(2)}<br>${s.pct >= 0 ? '+' : ''}${s.pct}%</td>
+              <td><span class="prob">${Math.round(s.prob * 100)}%</span> <span class="probbar" style="width:${Math.round(s.prob * 70)}px"></span></td>
+              <td class="conf">${Math.round(s.confidence * 100)}%</td>
+              <td>${(s.signals || []).slice(0, 5).map(x => `<span class="sig">${x}</span>`).join('') || '<span class="muted">-</span>'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="muted" style="margin-top:6px">收盘后自动生成复盘报告（命中率/涨停率/最大回撤/误判案例），模型权重随之自动迭代</div>`;
+    } else {
+      tp.innerHTML = '<div class="empty">等待首轮评分…</div>';
+    }
+
+    // 模型状态徽章
+    if (d.model) {
+      document.getElementById('modelBadge').textContent =
+        `模型 v${d.model.version} · 样本${d.model.samples} · 报警阈值${Math.round((d.model.alertThreshold || 0.5) * 100)}%${d.model.reviewDone ? ' · 已复盘' : ''}`;
+    }
+
+    // 竞价抢筹快照
+    const jj = document.getElementById('jj');
+    if (d.jj && d.jj.hits) {
+      const rowsJj = d.jj.hits.map(h =>
+        `<tr><td><b>${h.name}</b><br><span class="muted">${h.code.slice(2)}</span></td>` +
+        `<td class="up">+${h.gap}%</td><td>${h.price.toFixed(2)}</td><td>${h.amtYi}亿</td>` +
+        `<td>${h.ltszYi}亿</td><td>${h.hsl}%</td></tr>`).join('');
+      jj.innerHTML = `
+        <div class="muted" style="margin-bottom:6px">抓取于 ${d.jj.t}${d.jj.frozen ? ' · 已冻结（9:30后不再更新）' : ''} · 按成交额降序 · 共 ${d.jj.hits.length} 只</div>
+        <table>
+          <colgroup><col style="width:110px"><col style="width:64px"><col style="width:70px"><col style="width:64px"><col style="width:70px"><col></colgroup>
+          <thead><tr><th>标的</th><th>竞价高开</th><th>竞价价</th><th>成交额</th><th>流通市值</th><th>换手</th></tr></thead>
+          <tbody>${rowsJj}</tbody>
+        </table>`;
+    } else {
+      jj.innerHTML = '<div class="empty">今日快照尚未生成（9:25-9:45 首轮扫描自动抓取）</div>';
+    }
+
+    // 上一轮查询日志（漏斗）
+    const lg = document.getElementById('scanlog');
+    if (d.rounds && d.rounds.length) {
+      const r = d.rounds[0];
+      const ex = r.excluded || {};
+      lg.innerHTML = `
+        <div style="line-height:2">
+          <b>第 ${r.round} 轮 · ${r.t} · 耗时 ${Math.round(r.costMs/100)/10} 秒</b><br>
+          涨停池 <b>${r.poolZt}</b> 只 + 炸板池 <b>${r.poolZb}</b> 只 + 成交额榜 <b>${r.poolRank||0}</b> 只 + 自选 <b>${r.watch}</b> 只 → 行情获取 <b>${r.quotesOk}</b><br>
+          过滤：一字板 -${ex.word||0} · 已封死追不进 -${ex.locked||0} · 涨幅<1.5% -${ex.weak||0} · ST -${ex.st||0} · 科创板 -${ex.kcb||0} · 分钟线不足15根 -${r.noData||0}<br>
+          → 最终评分 <b>${r.scored}</b> 只
+        </div>
+        ${d.rounds.length > 1 ? `<div class="detail" style="margin-top:6px">最近${Math.min(d.rounds.length,8)}轮：` +
+          d.rounds.slice(1, 9).map(x => `${x.t} 候选${x.candidates}/评分${x.scored}`).join(' · ') + `</div>` : ''}`;
+    } else {
+      lg.innerHTML = '<div class="empty">等待首轮扫描完成…</div>';
+    }
+
+    const rows = document.getElementById('rows');
+    rows.innerHTML = d.list.length ? d.list.map(s => {
+      const cls = s.level === '强势' ? 'lv-strong' : s.level === '关注' ? 'lv-watch' : 'lv-none';
+      return `<tr>
+        <td><b>${s.name}</b><br><span class="muted">${s.code.slice(2)}${s.lbc>1?' · '+s.lbc+'连板':''}${s.nearLimit?' · 触板':''}${s.stale?' · 已停评分':''}</span></td>
+        <td>${s.src}</td>
+        <td class="${s.pct>=0?'up':'flat'}">${s.price.toFixed(2)}<br>${s.pct>=0?'+':''}${s.pct}%</td>
+        <td>${s.turnover.toFixed(1)}%</td>
+        <td class="score-big">${s.score}</td>
+        <td><span class="badge ${cls}">${s.level}</span></td>
+        <td>${spark(s.series, s.level==='强势')}</td>
+        <td>${(s.tags||[]).map(t=>`<span class="tag ${/被破|翻绿|新低/.test(t)?'warn':''}">${t}</span>`).join('')}<br><span class="detail">高开${s.d.gap}% 洗${s.d.washDepth}% 收复${s.d.recoverMin??'-'}分 低点数${s.d.swingChain} | 量价+${s.d.vp??0}（脉冲${s.d.pulses??0}·递升${s.d.sChain??0}·守稳${s.d.sHold??0}·同步${s.d.sSync??0}）</span></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="empty">候选池为空（非交易时段或无符合条件标的）</td></tr>';
+  } catch (e) { /* 服务未起 */ }
+}
+load();
+setInterval(load, 10000);
+</script>
+</body>
+</html>
