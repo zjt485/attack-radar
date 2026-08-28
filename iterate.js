@@ -62,9 +62,11 @@ function runIterate(dayStr) {
     entry.action.push(`SGD更新(累计${pool.length}样本, lr=${lr.toFixed(3)}) + 校准`);
 
     // 阈值寻优：网格搜索使"报警样本中命中率最高且报警数≥2"的阈值
+    // 必须与 server 实时报警同一概率口径（predict().prob，含校准成熟度门槛），
+    // 否则寻出的阈值与实盘不可比
     let best = { th: 0.5, f: -1 };
     for (let th = 0.3; th <= 0.85; th += 0.05) {
-      const alerted = pool.filter(s => model.predictProb(s.z, state) >= th);
+      const alerted = pool.filter(s => model.predict(s.z, state).prob >= th);
       if (alerted.length < 2) continue;
       const hitRate = alerted.filter(s => s.y >= 0.7).length / alerted.length;
       const f = hitRate - 0.02 * Math.max(0, alerted.length - 8); // 报太多要罚

@@ -17,10 +17,10 @@
   table { width:100%; border-collapse:collapse; table-layout:fixed; }
   th { text-align:left; font-size:11px; color:#888780; font-weight:400; padding:4px 6px; border-bottom:1px solid #eceae2; }
   td { padding:6px; border-bottom:1px solid #f0efe8; vertical-align:middle; }
-  .up { color:#c2362f; font-weight:500; } .flat { color:#888780; }
+  .up { color:#c2362f; font-weight:500; } .flat { color:#888780; } .down { color:#389e0d; font-weight:500; }
   .tag { display:inline-block; background:#eeedfe; color:#3c3489; border-radius:4px; padding:0 5px; margin:1px 3px 1px 0; font-size:11px; }
   .tag.warn { background:#fcebeb; color:#791f1f; }
-  .alert-item { padding:5px 0; border-bottom:1px solid #f0efe8; }
+  .alert-item { padding:5px 0 5px 8px; border-bottom:1px solid #f0efe8; border-left:3px solid transparent; }
   .alert-item:last-child { border-bottom:none; }
   .score-big { font-size:17px; font-weight:500; }
   .muted { color:#9a9990; font-size:11px; }
@@ -65,6 +65,22 @@
 <div class="card">
   <h2>报警时间线（规则分≥80 且 概率≥阈值 双确认 · 每档每日只报一次）</h2>
   <div id="alerts"><div class="empty">暂无报警</div></div>
+</div>
+
+<div class="card" style="border:1.5px solid #52c41a">
+  <h2>买点信号（20cm短线博弈纪律 + 延续确认门 · 8/28 定稿）</h2>
+  <div class="detail">
+    用户纪律：只做 20cm（创业板），买点价必须 &lt;+5%（小于5cm介入才有博弈价值）。<br>
+    分两档：<b>&lt;+3.5% 低位直取</b>（报警即买点，天山型）；<b>+3.5~5% 走确认门</b>（突破报警价+0.6%确认延续后，缩量微回踩/深回踩放量企稳才买）。报警后45分钟不创新高=派发顶放弃；破-4%防线放弃；非20cm/报警≥5%不进观察。<br>
+    回测：天山低位直取+16.6%；康盛/深信服/麦捷/先导/光智/鑫磊全部正确出局。
+  </div>
+  <div id="buySignals"><div class="empty">暂无买点信号</div></div>
+  <div id="watches" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <h2>盘前抢筹榜（mootdx 竞价段撮合 · 9:15-9:25 轮询 | 撮合价+匹配量+9:20后趋势，强度分0-100）</h2>
+  <div id="jjpre"><div class="empty">今日盘前数据尚未生成（竞价桥 9:12 自动拉起，9:25 后出榜）</div></div>
 </div>
 
 <div class="card">
@@ -235,6 +251,59 @@ async function load() {
     if (d.model) {
       document.getElementById('modelBadge').textContent =
         `模型 v${d.model.version} · 样本${d.model.samples} · 报警阈值${Math.round((d.model.alertThreshold || 0.5) * 100)}%${d.model.reviewDone ? ' · 已复盘' : ''}`;
+    }
+
+    // ---- 买点信号（两阶段·延续确认门）----
+    const bs = document.getElementById('buySignals');
+    if (d.buySignals && d.buySignals.length) {
+      bs.innerHTML = d.buySignals.map(b =>
+        `<div class="alert-item" style="border-left-color:#52c41a">` +
+        `<b>${b.name}</b> <span class="muted">${b.code.slice(2)}</span> ` +
+        `<span class="sig" style="background:#f6ffed;color:#389e0d">买点·${b.mode}</span> ` +
+        `买点价 <b class="up">${b.price.toFixed(2)}</b> @${b.t} ` +
+        `<span class="muted">（报警${b.alertT}@${b.alertPrice.toFixed(2)} → 确认${b.confirmT}）</span> ` +
+        `现价 ${b.curPrice.toFixed(2)} <span class="${b.pctVsAlert >= 0 ? 'up' : 'down'}">${b.pctVsAlert >= 0 ? '+' : ''}${b.pctVsAlert}%</span>` +
+        (b.dropPct ? ` <span class="muted">回踩${b.dropPct}%</span>` : '') +
+        `</div>`).join('');
+    } else {
+      bs.innerHTML = '<div class="empty">暂无买点信号——报警后需先突破报警价+0.6%确认延续，再等回踩企稳才出买点</div>';
+    }
+    // 观察态跟踪（报警后尚未出买点的票）
+    const wt = document.getElementById('watches');
+    const activeWatches = (d.watches || []).filter(w => w.status === 'watching' || w.status === 'confirmed');
+    if (activeWatches.length) {
+      wt.innerHTML = '<div class="muted" style="margin-bottom:4px">观察中（报警已触发，等待延续确认/买点）：</div>' +
+        activeWatches.map(w =>
+          `<div class="alert-item" style="border-left-color:#faad14">` +
+          `<b>${w.name || w.code}</b> <span class="muted">${w.code.slice(2)}</span> ` +
+          (w.status === 'confirmed'
+            ? `<span class="sig" style="background:#fffbe6;color:#d48806">已确认延续 ${w.confirmT} · 等回踩企稳</span>`
+            : `<span class="sig" style="background:#fff1f0;color:#cf1322">待确认 · 需破${(w.alertPrice * 1.006).toFixed(2)}</span>`) +
+          ` <span class="muted">报警${w.alertT}@${w.alertPrice.toFixed(2)} | 峰${w.peak.toFixed(2)} | 防线${(w.alertPrice * 0.96).toFixed(2)}</span>` +
+          `</div>`).join('');
+    } else {
+      wt.innerHTML = '';
+    }
+
+    // 盘前抢筹榜（mootdx 竞价桥）
+    const jpre = document.getElementById('jjpre');
+    if (d.jjPre && d.jjPre.rows && d.jjPre.rows.length) {
+      const rowsP = d.jjPre.rows.map(h =>
+        `<tr><td><b>${h.name}</b><br><span class="muted">${h.code.slice(2)}</span></td>` +
+        `<td class="${h.gap >= 0 ? 'up' : 'down'}">${h.gap >= 0 ? '+' : ''}${h.gap}%</td>` +
+        `<td>${h.match.toFixed(2)}</td>` +
+        `<td class="${h.trend >= 0 ? 'up' : 'down'}">${h.trend >= 0 ? '+' : ''}${h.trend.toFixed(2)}%</td>` +
+        `<td>${(h.matchVol / 10000).toFixed(1)}万手</td>` +
+        `<td><b>${h.strength}</b></td></tr>`).join('');
+      jpre.innerHTML = `
+        <div class="muted" style="margin-bottom:6px">${d.jjPre.src} · 产出 ${d.jjPre.genT} · 候选${d.jjPre.n}只（按强度分降序，趋势=9:20-9:25不可撤单段撮合价走势）</div>
+        <table>
+          <colgroup><col style="width:110px"><col style="width:64px"><col style="width:70px"><col style="width:80px"><col style="width:76px"><col style="width:56px"></colgroup>
+          <thead><tr><th>标的</th><th>竞价高开</th><th>撮合价</th><th>9:20后趋势</th><th>匹配量</th><th>强度</th></tr></thead>
+          <tbody>${rowsP}</tbody>
+        </table>`;
+    } else {
+      jpre.innerHTML = '<div class="empty">今日盘前数据尚未生成（竞价桥 9:12 自动拉起，9:25 后出榜）</div>';
     }
 
     // 竞价抢筹快照

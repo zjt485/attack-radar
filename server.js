@@ -15,6 +15,7 @@ const { buildFeatures } = require('./features');
 const model = require('./model');
 const { runReview } = require('./review');
 const { runIterate } = require('./iterate');
+const bp = require('./buypoint');   // 两阶段买点状态机（延续确认门）
 
 // 扫描间隔：每轮结束后随机 2~5 分钟（随机化本身也是防限流手段）
 function nextInterval() { return (2 + Math.random() * 3) * 60000; }
@@ -29,7 +30,12 @@ const state = {
   running: false,
   stocks: {},      // code -> {name, quote, score, level, tags, d, series:[], alerted:{60,80}, status}
   alerts: [],      // 时间线
-  log: []
+  log: [],
+  // ---- 两阶段买点（延续确认门，8/28 定稿）----
+  // watches: code -> buypoint 观察态（报警后创建，每轮喂分钟线推进）
+  // buySignals: 已触发买点的时间线（看板展示 + 样本落盘）
+  watches: {},
+  buySignals: []
 };
 
 function todayStr() {
@@ -65,7 +71,9 @@ async function getPools() {
   const ut = '7eea3edcaed734bea9cbfc24409ed989';
   const [zt, zb] = await Promise.all([
     fetchUrl(`${base}getTopicZTPool?ut=${ut}&dpt=wz.ztzt&Pageindex=0&pagesize=200&sort=fbt:asc&date=${date}`),
-    fetchUrl(`${base}getTopicZBPool?ut=${ut}&dpt=wz.ztzt&Pageindex=0&pagesize=200&sort=fund:asc&date=${date}`)
+    // 注意：炸板池没有 fund 字段，sort 必须用 fbt:asc —— 用 fund:asc 会返回空池
+    // （8/28 实证：fund:asc → pool=[] 但 tc=13，导致炸板票 zbc 全丢、降权门失效）
+    fetchUrl(`${base}getTopicZBPool?ut=${ut}&dpt=wz.ztzt&Pageindex=0&pagesize=200&sort=fbt:asc&date=${date}`)
   ]);
   const codes = new Map(); // code -> {src, hybk, fundWan, ltszYi, ...}
   let ztCount = 0;
@@ -287,9 +295,67 @@ function maybeCaptureJJ(rank, quotes) {
   };
 }
 
+// 重启恢复：从当日样本文件恢复 samples（每轮扫描末会整份落盘），
+// 避免重启丢失上午的样本与报警入场点（复盘依赖）
+function restoreSamples(day) {
+  const f = path.join(DIR, 'samples', `samples_${day}.jsonl`);
+  if (!fs.existsSync(f)) return {};
+  const out = {};
+  for (const line of fs.readFileSync(f, 'utf-8').split('\n')) {
+    if (!line.trim()) continue;
+    try { const s = JSON.parse(line); if (s.code) out[s.code] = s; } catch (e) {}
+  }
+  return out;
+}
+
+// 启动时恢复（午休/盘后重启也能立刻看到上午的报警时间线，不必等下一轮扫描）
+(function restoreOnBoot() {
+  const day = todayStr();
+  const samples = restoreSamples(day);
+  const n = Object.keys(samples).length;
+  if (!n) return;
+  state.day = day;
+  state.samples = samples;
+  for (const s of Object.values(samples)) {
+    if (!s.alertT) continue;
+    state.alerts.push({
+      t: s.alertT, code: s.code, name: s.name, level: '强势', score: s.score,
+      prob: s.prob, confidence: s.confidence,
+      pct: s.prevClose ? +((s.alertPrice / s.prevClose - 1) * 100).toFixed(2) : 0,
+      tags: (s.tags || []).join('/'), signals: (s.signals || []).join('·'),
+      price: s.alertPrice, src: s.src, lbc: 1, restored: true
+    });
+    if (!state.stocks[s.code]) state.stocks[s.code] = { series: [], alerted: {} };
+    state.stocks[s.code].alerted = state.stocks[s.code].alerted || {};
+    state.stocks[s.code].alerted[80] = true;   // 已报过，重启后不重复报警
+  }
+  state.alerts.sort((a, b) => (b.t || '').localeCompare(a.t || ''));
+  console.log(`[attack-radar] 启动恢复：${n} 个样本，${state.alerts.length} 条报警`);
+})();
+
 async function scan(force) {
   const day = todayStr();
-  if (state.day !== day) { state.day = day; state.stocks = {}; state.alerts = []; state.log = []; state.rounds = []; state.jjSnapshot = null; state.samples = {}; state.topList = []; state.reviewDone = false; }
+  if (state.day !== day) {
+    state.day = day; state.stocks = {}; state.alerts = []; state.log = []; state.rounds = []; state.jjSnapshot = null; state.samples = restoreSamples(day); state.topList = []; state.reviewDone = false;
+    state.watches = {}; state.buySignals = [];   // 买点观察态跨日重置
+    // 从恢复的样本重建报警时间线（重启不丢上午的报警记录）
+    for (const s of Object.values(state.samples)) {
+      if (s.alertT) {
+        state.alerts.push({
+          t: s.alertT, code: s.code, name: s.name, level: '强势', score: s.score,
+          prob: s.prob, confidence: s.confidence,
+          pct: s.prevClose ? +((s.alertPrice / s.prevClose - 1) * 100).toFixed(2) : 0,
+          tags: (s.tags || []).join('/'), signals: (s.signals || []).join('·'),
+          price: s.alertPrice, src: s.src, lbc: 1, restored: true
+        });
+        // 标记已报过，重启后不重复报警
+        if (!state.stocks[s.code]) state.stocks[s.code] = { series: [], alerted: {} };
+        state.stocks[s.code].alerted = state.stocks[s.code].alerted || {};
+        state.stocks[s.code].alerted[80] = true;
+      }
+    }
+    state.alerts.sort((a, b) => (b.t || '').localeCompare(a.t || ''));
+  }
   state.round++;
   state.lastScan = Date.now();
   state.running = true;
@@ -363,8 +429,8 @@ async function scan(force) {
         s.stale = true;
         s.nearLimit = true;
       } else {
-        // B) 没封死：继续评分
-        scoringSet.push({ code: s.code, q, meta: { src: s.src || '成交额榜', lbc: s.lbc || 1, hybk: s.hybk, ltszYi: s.ltszYi, amtWan: s.amtWan }, lp });
+        // B) 没封死：继续评分（zbc 必须继承，否则炸板降权门对回捞票失效）
+        scoringSet.push({ code: s.code, q, meta: { src: s.src || '成交额榜', lbc: s.lbc || 1, zbc: s.zbc || 0, hybk: s.hybk, ltszYi: s.ltszYi, amtWan: s.amtWan }, lp });
       }
     }
   }
@@ -378,6 +444,39 @@ async function scan(force) {
     const prevLow = await getPrevLow(code);
     const r = scoreAttack(bars, { prevClose: q.prevClose, prevLow });
     stat.scored++;
+
+    // ---- 两阶段买点状态机：报警后把新分钟线喂进观察态（延续确认门） ----
+    const bw = state.watches[code];
+    if (bw && bw.status !== 'entry' && bw.status !== 'rejected') {
+      const newBars = bars.filter(b => b.t > bw.lastFeedT);
+      for (let k = 0; k < newBars.length; k++) {
+        const idx = bars.findIndex(b => b.t === newBars[k].t);
+        bp.feed(bw, newBars[k], bars[idx - 1], ++bw.elapsed);
+        if (bw.status === 'entry') {
+          const ent = bw.entry;
+          state.buySignals.unshift({
+            t: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+            code, name: q.name, price: ent.price,
+            mode: ent.mode === 'micro' ? '微回踩' : '深回踩企稳',
+            confirmT: ent.confirmT, alertT: bw.alertT, alertPrice: bw.alertPrice,
+            dropPct: ent.dropPct || 0, curPrice: q.price,
+            pctVsAlert: +((q.price / bw.alertPrice - 1) * 100).toFixed(2)
+          });
+          if (state.samples[code]) {
+            state.samples[code].buyT = ent.t;
+            state.samples[code].buyPrice = ent.price;
+            state.samples[code].buyMode = ent.mode;
+          }
+          console.log(`[买点] ${q.name}(${code}) ${bw.alertT}报警 → ${ent.mode}买点 ${ent.t}@${ent.price}`);
+          break;
+        }
+        if (bw.status === 'rejected') {
+          console.log(`[买点] ${q.name}(${code}) 放弃: ${bw.rejectReason}`);
+          break;
+        }
+      }
+      bw.lastFeedT = bars[bars.length - 1].t;
+    }
 
     // ---- 特征 → 概率 → 置信度（概率模型层） ----
     const hybk = meta.hybk || null;
@@ -423,9 +522,16 @@ async function scan(force) {
     };
 
     // 报警：概率阈值（模型自适应）+ 规则分≥80 双确认，每档每天一次
+    // 炸板降权门（8/28 用户拍板，康盛案例驱动）：
+    //   仍在炸板池（未回封）的票是"炸板回落"角色，不是干净进攻形态——
+    //   炸板≥2次（反复炸板，出货嫌疑）→ 直接拒报；炸板1次 → 报警门槛抬高10分
+    //   若已回封涨停则不在炸板池（在涨停池），不受降权影响
+    const zbc = meta.zbc || 0;
+    const zbGate = meta.src === '炸板' ? (zbc >= 2 ? Infinity : 10) : 0;
     const th = mState.alertThreshold || 0.5;
     for (const [lv, name_] of [[80, '强势']]) {
-      if (r.score >= lv && pred.prob >= th && !st.alerted[lv]) {
+      if (zbGate === Infinity) continue;   // 反复炸板：静默拒报
+      if (r.score >= lv + zbGate && pred.prob >= th && !st.alerted[lv]) {
         st.alerted[lv] = true;
         // 首次报警时刻/价格写入样本 = 复盘的"入场点"（算报警后浮盈/回撤）
         if (state.samples[code]) {
@@ -440,13 +546,43 @@ async function scan(force) {
           price: q.price, src: meta.src, lbc: meta.lbc
         });
         state.log.push({ ts: Date.now(), code, name: q.name, level: name_, score: r.score, prob: pred.prob, tags: r.tags });
+        // 两阶段买点：报警后先过"介入资格审查"（只做20cm + 报警<5cm，8/28用户拍板）
+        if (!state.watches[code]) {
+          const elig = bp.eligibleWatch(code, q.price, q.prevClose);
+          if (!elig.ok) {
+            console.log(`[买点] ${q.name}(${code}) 不进观察: ${elig.reason}${elig.pct !== undefined ? ' pct=' + elig.pct.toFixed(1) + '%' : ''}`);
+          } else {
+            const w = bp.createWatch(bars[bars.length - 1], q.price, q.prevClose);
+            w.lastFeedT = bars[bars.length - 1].t;
+            w.elapsed = 0;
+            state.watches[code] = w;
+            // 低位直取（报警涨幅<3.5cm）：创建瞬间即买点，确认门在此档是累赘
+            if (w.status === 'entry') {
+              const ent = w.entry;
+              state.buySignals.unshift({
+                t: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+                code, name: q.name, price: ent.price,
+                mode: '低位直取',
+                confirmT: ent.confirmT, alertT: w.alertT, alertPrice: w.alertPrice,
+                dropPct: 0, curPrice: q.price, entryPct: elig.pct !== undefined ? +elig.pct.toFixed(2) : 0,
+                pctVsAlert: 0
+              });
+              if (state.samples[code]) {
+                state.samples[code].buyT = ent.t;
+                state.samples[code].buyPrice = ent.price;
+                state.samples[code].buyMode = 'direct';
+              }
+              console.log(`[买点] ${q.name}(${code}) ${w.alertT}报警 → 低位直取 @${ent.price}(+${(elig.pct || 0).toFixed(1)}%)`);
+            }
+          }
+        }
       }
     }
   }, 4);
 
   // ---- 每日候选榜：按概率取 Top10（核心信号+置信度） ----
   state.topList = Object.values(state.stocks)
-    .filter(s => s.prob !== undefined && !s.nearLimit)
+    .filter(s => s.quote && s.result && s.prob !== undefined && !s.nearLimit)   // 占位对象防御（同 snapshot）
     .sort((a, b) => b.prob - a.prob)
     .slice(0, 10)
     .map(s => ({
@@ -476,6 +612,7 @@ async function scan(force) {
 // ---------- HTTP ----------
 function snapshot() {
   const list = Object.values(state.stocks)
+    .filter(s => s.quote && s.result)   // 跳过启动恢复的占位对象（只有alerted，无quote/result）
     .map(s => ({
       code: s.code, name: s.name, src: s.src, lbc: s.lbc, hybk: s.hybk,
       price: s.quote.price,
@@ -489,7 +626,15 @@ function snapshot() {
   return {
     ts: Date.now(), day: state.day, round: state.round, running: state.running, nextScanAt,
     rounds: state.rounds || [], alerts: state.alerts, jj: state.jjSnapshot || null,
+    jjPre: getJJPre() || null,
     topList: state.topList || [],
+    buySignals: state.buySignals || [],
+    // 买点观察态（报警后进场跟踪）：只暴露看板需要的字段
+    watches: Object.entries(state.watches || {}).map(([code, w]) => ({
+      code, name: (state.stocks[code] || {}).name, alertT: w.alertT, alertPrice: w.alertPrice,
+      status: w.status, rejectReason: w.rejectReason, confirmed: w.confirmed, confirmT: w.confirmT,
+      peak: w.peak, entry: w.entry
+    })),
     model: { version: (model.loadState().version || 0), alertThreshold: model.loadState().alertThreshold || 0.5, samples: model.loadState().samples || 0, reviewDone: !!state.reviewDone },
     list
   };
@@ -511,6 +656,47 @@ async function doReviewAndIterate() {
     console.error('[review error]', e.message);
     state.reviewDone = false;
   }
+}
+
+// ---------- 盘前竞价抢筹桥（mootdx Python 进程，9:12 拉起一次，9:25 产出 jj_pre.json） ----------
+// 背景：腾讯行情竞价段"今开"恒为0，拿不到撮合价；通达信 bid1 = 竞价实时撮合价
+let jjBridgeStarted = false;
+function maybeLaunchJJBridge() {
+  if (jjBridgeStarted) return;
+  const now = new Date();
+  const wd = now.getDay();
+  if (wd === 0 || wd === 6) return;
+  const hm = now.getHours() * 100 + now.getMinutes();
+  if (hm < 905 || hm > 918) return;               // 9:05-9:18 窗口内拉起（留足 9:15 前建候选集的时间）
+  const day = todayStr();
+  const outFile = path.join(DIR, 'jj_pre.json');
+  // 已有今天的产出 → 跳过（服务重启不重复拉）
+  try {
+    const j = JSON.parse(fs.readFileSync(outFile, 'utf-8'));
+    if (j.day === day) { jjBridgeStarted = true; console.log('[jj-bridge] 今天已有产出，跳过拉起'); return; }
+  } catch (e) {}
+  const py = 'C:/Users/EDY/.workbuddy/binaries/python/envs/default/Scripts/python.exe';
+  if (!fs.existsSync(py)) { console.log('[jj-bridge] Python venv 不存在，跳过'); jjBridgeStarted = true; return; }
+  try {
+    const child = spawn(py, [path.join(DIR, 'jj_bridge.py')], {
+      detached: true, stdio: ['ignore', 'ignore', fs.openSync(path.join(DIR, 'logs', 'jj_bridge.err.log'), 'a')]
+    });
+    child.unref();
+    jjBridgeStarted = true;
+    console.log(`[jj-bridge] ${hm} 已拉起竞价采集桥 pid=${child.pid}`);
+  } catch (e) { console.error('[jj-bridge] 拉起失败:', e.message); }
+}
+
+// 读取盘前抢筹产出（9:25 首轮起可用；同一天内缓存，跨日自动失效；空产出视为无数据）
+let jjPreCache = { day: null, data: null };
+function getJJPre() {
+  const day = todayStr();
+  if (jjPreCache.day === day) return jjPreCache.data;
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(DIR, 'jj_pre.json'), 'utf-8'));
+    jjPreCache = { day, data: (j.day === day && j.n > 0) ? j : null };
+  } catch (e) { jjPreCache = { day, data: null }; }
+  return jjPreCache.data;
 }
 
 const server = http.createServer((req, res) => {
@@ -539,15 +725,23 @@ const server = http.createServer((req, res) => {
   if (req.url.startsWith('/api/restart')) {
     // 一键重启：先关闭监听释放端口 → 拉起新进程（detached）→ 本进程退出
     // 注意顺序：若先 spawn 后退出，新进程会撞上 EADDRINUSE 安静死掉
+    // 注意（8/28 修复）：日志文件被旧进程句柄占用时 openSync 会抛 EPERM 导致重启崩溃，
+    // 降级策略：主日志 → 备用日志 → ignore，保证新进程一定能拉起来
     res.end('restarting');
     setTimeout(() => {
       let spawned = false;
       const doSpawn = () => {
         if (spawned) return;
         spawned = true;
+        let outFd = 'ignore', errFd = 'ignore';
+        try { outFd = fs.openSync(path.join(DIR, 'logs', 'service.log'), 'a'); } catch (e) {
+          try { outFd = fs.openSync(path.join(DIR, 'logs', 'service2.log'), 'a'); } catch (e2) {}
+        }
+        try { errFd = fs.openSync(path.join(DIR, 'logs', 'service.err.log'), 'a'); } catch (e) {
+          try { errFd = fs.openSync(path.join(DIR, 'logs', 'service2.err.log'), 'a'); } catch (e2) {}
+        }
         const child = spawn(process.execPath, [path.join(DIR, 'server.js')], {
-          detached: true,
-          stdio: ['ignore', fs.openSync(path.join(DIR, 'logs', 'service.log'), 'a'), fs.openSync(path.join(DIR, 'logs', 'service.err.log'), 'a')]
+          detached: true, stdio: ['ignore', outFd, errFd]
         });
         child.unref();
         console.log('[attack-radar] 收到重启指令，新进程 PID', child.pid);
@@ -575,6 +769,7 @@ server.listen(PORT, () => console.log(`[attack-radar] http://localhost:${PORT}`)
 let nextScanAt = 0;
 
 async function loop() {
+  maybeLaunchJJBridge();   // 盘前竞价桥：9:05-9:18 窗口内拉起一次（在交易时段判断之前，9:12 还在"盘外"）
   if (!inSession(process.argv.includes('--force'))) {
     // 盘后复盘窗口：工作日 15:05-16:30，每日仅跑一次（收盘数据已完整）
     const now = new Date();
@@ -584,7 +779,8 @@ async function loop() {
       await doReviewAndIterate();
     }
     // 非交易时段：零请求，直接睡到下一个交易时段开始（跨午休/跨周末都精确计算）
-    const wait = Math.max(30000, msToNextSession());
+    let wait = Math.max(30000, msToNextSession());
+    if (wd >= 1 && wd <= 5 && hm >= 850 && hm < 925) wait = Math.min(wait, 60000);  // 盘前段别睡过竞价桥拉起窗口
     console.log(`[attack-radar] 非交易时段，休眠 ${Math.round(wait / 60000)} 分钟后再看`);
     setTimeout(loop, wait);
     return;
@@ -601,4 +797,24 @@ setTimeout(loop, 3000);
 process.on('SIGINT', () => {
   fs.writeFileSync(path.join(DIR, 'logs', `${state.day}.json`), JSON.stringify(state.log, null, 1));
   process.exit(0);
+});
+
+// ---- 保命钩子（8/28 13:42 进程静默死亡事故后加的） ----
+// Node 22 默认：未捕获的 Promise rejection / 未捕获异常 → 进程直接退出。
+// 雷达是长跑服务，任何一次异步错误（网络回调、定时器里的 throw）都不该杀死整个进程。
+// 策略：记日志 + 继续跑；若状态已损坏到无法自愈，宁可记错也别静默死。
+function crashNote(kind, e) {
+  try {
+    const line = `[${new Date().toLocaleString('zh-CN')}] ${kind}: ${e && e.stack || e}\n`;
+    fs.appendFileSync(path.join(DIR, 'logs', 'crash.log'), line);
+    console.error(`[fatal-guard] ${kind}:`, e && e.message);
+  } catch (_) {}
+}
+process.on('uncaughtException', (e) => {
+  crashNote('uncaughtException', e);
+  // 主循环断链是最致命的——确保定时器还在转（如果 loop 定时器被异常炸断，这里兜底续上）
+  if (!state.running) { setTimeout(() => { try { loop(); } catch (e2) { crashNote('loop-resume', e2); } }, 5000); }
+});
+process.on('unhandledRejection', (reason) => {
+  crashNote('unhandledRejection', reason);
 });

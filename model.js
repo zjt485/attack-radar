@@ -88,7 +88,13 @@ function sgdStep(samples, state, opts = {}) {
 // 简单分箱校准：按模型概率排序，分箱统计实际正例率，做单调映射
 function calibrate(samples, state, bins = 5) {
   if (samples.length < 10) return state; // 样本不足跳过
-  const sorted = [...samples].sort((a, b) => a.prob - b.prob);
+  // 校准需要每个样本的模型预测概率；样本池里只存了 {day,z,y}，此处用当前权重现算补齐
+  // （曾有 bug：直接用 x.prob 而池中无此字段 → 全 undefined → calibMap 的 p 全 null，
+  //   导致 applyCalibration 把所有票映射到最后一档，概率全被压成同一值）
+  const withProb = samples.map(s => (s.prob !== undefined && s.prob !== null && !Number.isNaN(s.prob))
+    ? s
+    : { ...s, prob: predictProb(s.z, state) });
+  const sorted = [...withProb].sort((a, b) => a.prob - b.prob);
   const size = Math.ceil(sorted.length / bins);
   const map = [];
   for (let i = 0; i < bins; i++) {
@@ -106,6 +112,8 @@ function calibrate(samples, state, bins = 5) {
 function applyCalibration(prob, state) {
   const map = state.calibMap;
   if (!map || map.length < 2) return prob;
+  // 防御：校准表本身损坏（p 为 null/NaN）时回退用原始概率，避免把所有票映射到同一档
+  if (map.some(m => m.p === null || m.p === undefined || Number.isNaN(m.p))) return prob;
   if (prob <= map[0].p) return map[0].y;
   if (prob >= map[map.length - 1].p) return map[map.length - 1].y;
   for (let i = 1; i < map.length; i++) {
@@ -120,10 +128,16 @@ function applyCalibration(prob, state) {
 
 // ---------- 主预测入口 ----------
 // 返回 { probRaw, prob, confidence, scoreRaw }
+// 校准成熟度门槛：样本池≥300（约3个交易日）才启用校准映射。
+// 教训（8/28 实证）：仅1天125样本时校准严重过拟合——单日涨停池数据把概率分布
+// 学成两极分离，校准映射将 <0.83 的原始概率全压到 ≤0.68，报警阈值 0.8 变得
+// 永远不可达，报警被结构性灭掉。样本不足时直接用原始概率（与 iterate 阈值寻优口径一致）。
+const CALIB_MIN_SAMPLES = 300;
 function predict(z, state) {
   const scoreRaw = rawScore(z, state);
   const probRaw = sigmoid(scoreRaw);
-  const prob = applyCalibration(probRaw, state);
+  const mature = (state.samples || 0) >= CALIB_MIN_SAMPLES;
+  const prob = mature ? applyCalibration(probRaw, state) : probRaw;
   // 置信度：综合概率与模型成熟度（样本数）。样本越多，越敢给高置信
   const maturity = Math.min(1, (state.samples || 0) / 60); // 60个样本算成熟
   const confidence = prob * (0.5 + 0.5 * maturity);

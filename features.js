@@ -142,6 +142,7 @@ function buildFeatures(inp, stats) {
   if (raw.vp >= 15) signals.push('量化攻击结构');
   if (raw.riseSpeed >= 0.3) signals.push(`急拉${raw.riseSpeed.toFixed(2)}%/分`);
   if (raw.lbc >= 2) signals.push(`${raw.lbc}连板`);
+  if (raw.zbc >= 1) signals.push(`炸板×${raw.zbc}`);
   if (raw.fundRatio >= 0.02) signals.push(`封单占流通${(raw.fundRatio * 100).toFixed(1)}%`);
   if (raw.secZdf >= 3) signals.push(`板块${inp.sec?.name || ''}+${raw.secZdf.toFixed(1)}%`);
   if (raw.secHot >= 3) signals.push(`板块${raw.secHot}家涨停`);
