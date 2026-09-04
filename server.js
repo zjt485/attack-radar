@@ -19,6 +19,7 @@ const bp = require('./buypoint');   // 两阶段买点状态机（延续确认�
 const { buildDipStatus, DIP_POOL } = require('./dip_watch'); // 低吸买点监听（9月第一周候选，8/30 建）
 const relay = require('./relay');   // 主板首板接力模块（8/31，复刻"耀不拿手机"风格，14:45出名单）
 const md = require('./morning_direct'); // 早盘直取（9/1，江天化学漏报驱动：9:30-9:40 直拉窗口高频扫描）
+const notify = require('./notify');     // 桌面提醒（9/4：报警/买点触发即弹窗，不再只写看板）
 
 // 扫描间隔：每轮结束后随机 2~5 分钟（随机化本身也是防限流手段）
 function nextInterval() { return (2 + Math.random() * 3) * 60000; }
@@ -430,6 +431,7 @@ async function scan(force) {
           price: d.price, src: '低吸监听', lbc: 0
         });
         console.log(`[低吸买点] ${d.name}(${d.code}) 现价${d.price} 进入买区 ${d.buyLow}~${d.buyHigh}`);
+        notify.send({ type: '低吸买区', code: d.code, name: d.name, text: `现价${d.price} 进入买区 ${d.buyLow}~${d.buyHigh} ${d.group}` });
       }
     }
   }
@@ -521,6 +523,7 @@ async function scan(force) {
             state.samples[code].buyMode = ent.mode;
           }
           console.log(`[买点] ${q.name}(${code}) ${bw.alertT}报警 → ${ent.mode}买点 ${ent.t}@${ent.price}`);
+          notify.send({ type: '买点确认', code, name: q.name, text: `${ent.mode}买点 ${ent.t}@${ent.price} 距报警 ${(q.price / bw.alertPrice - 1) * 100 >= 0 ? '+' : ''}${((q.price / bw.alertPrice - 1) * 100).toFixed(1)}%` });
           break;
         }
         if (bw.status === 'rejected') {
@@ -599,6 +602,8 @@ async function scan(force) {
           price: q.price, src: meta.src, lbc: meta.lbc
         });
         state.log.push({ ts: Date.now(), code, name: q.name, level: name_, score: r.score, prob: pred.prob, tags: r.tags });
+        // 9/4：报警即弹窗+提示音（此前只写看板；用户盘中不盯板就漏了易点天下这类）
+        notify.send({ type: '强势报警', code, name: q.name, text: `score ${r.score} +${r.d.pct}% @${q.price} ${r.tags.slice(0, 3).join('/')} ${meta.src}` });
         // 两阶段买点：报警后先过"介入资格审查"（只做20cm + 报警<5cm，8/28用户拍板）
         if (!state.watches[code]) {
           const elig = bp.eligibleWatch(code, q.price, q.prevClose);
@@ -626,6 +631,7 @@ async function scan(force) {
                 state.samples[code].buyMode = 'direct';
               }
               console.log(`[买点] ${q.name}(${code}) ${w.alertT}报警 → 直取 @${ent.price}(+${(elig.pct || 0).toFixed(1)}%)`);
+              notify.send({ type: '直取买点', code, name: q.name, text: `报警后即刻直取 @${ent.price} (+${(elig.pct || 0).toFixed(1)}%)` });
             }
           }
         }

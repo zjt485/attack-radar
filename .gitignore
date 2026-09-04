@@ -20,3 +20,6 @@ bt_*.json
 # 系统
 .DS_Store
 Thumbs.db
+
+# npm（如需在本地装依赖调试）
+node_modules/

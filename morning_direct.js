@@ -24,6 +24,7 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const notify = require('./notify');   // 桌面提醒（9/4：早盘直取触发即弹窗+提示音）
 
 const DIR = __dirname;
 
@@ -227,6 +228,8 @@ async function tick(state, opts = {}) {
         dropPct: 0, curPrice: h.q.price, entryPct: +h.pct.toFixed(2), pctVsAlert: 0
       });
       console.log(`[早盘直取] ${h.q.name}(${h.code}) +${h.pct.toFixed(2)}% @${h.q.price} ← ${h.meta.src} ${h.bars.length}根/${h.chk.rising}连涨`);
+      // 9/4：触发即弹桌面气泡+提示音（此前只写看板，用户不看板就漏提醒）
+      notify.send({ type: '早盘直取', code: h.code, name: h.q.name, text: `+${h.pct.toFixed(2)}% @${h.q.price} ${h.meta.src} 开盘+${h.chk.openPct}% ${h.bars.length}根/${h.chk.rising}连涨` });
     }
     if (!opts.dryRun && hits.length) saveSignals(day, state.mdSignals);
     return { n: hits.length, candN: cand.size };
