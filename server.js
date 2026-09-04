@@ -921,9 +921,19 @@ setTimeout(loop, 3000);
 
 // ---- 推荐跟踪刷新循环（9/4）：交易时段每 45s 给已推荐票补现价（推荐价 vs 现价对比） ----
 // 独立于主扫描：跟踪的票早已不在候选池里，只有这里持续更新它们的 lastPrice/chgPct
+// 9/4 下午修：返回值同步刷买点信号卡（此前 curPrice 是触发快照永不更新——用户反馈"现价不更新"）
 (async function trackLoop() {
   try {
-    if (track.count() && inSession(false)) { await track.refreshQuotes(); }
+    if (track.count() && inSession(false)) {
+      const priceMap = await track.refreshQuotes();
+      for (const b of state.buySignals || []) {
+        const p = priceMap && priceMap[b.code];
+        if (isFinite(p) && p > 0) {
+          b.curPrice = p;
+          if (b.alertPrice) b.pctVsAlert = +((p / b.alertPrice - 1) * 100).toFixed(2);
+        }
+      }
+    }
   } catch (e) { console.error('[track refresh]', e.message); }
   setTimeout(trackLoop, 45000);
 })();

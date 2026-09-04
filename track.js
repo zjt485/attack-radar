@@ -77,7 +77,7 @@ function fetchUrl(url, timeout = 8000) {
 }
 
 async function refreshQuotes() {
-  if (!rows.length) return;
+  if (!rows.length) return {};
   const codes = [...new Set(rows.map(r => r.code))];
   const priceMap = {};
   for (let i = 0; i < codes.length; i += 50) {
@@ -104,6 +104,7 @@ async function refreshQuotes() {
     }
   }
   if (touched) save();
+  return priceMap;   // 供调用方（如 server 的买点信号卡）同步现价
 }
 
 // 看板/复盘用：新→旧排序
