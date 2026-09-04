@@ -1,0 +1,319 @@
+{
+  "meta": {
+    "total": 506,
+    "intraday": 242,
+    "days": 6
+  },
+  "headline": {
+    "probIcLeak": 0.457,
+    "probIcNoLeak": -0.0033,
+    "scoreIcNoLeak": 0.1344,
+    "entryVsRemain": -0.0342
+  },
+  "goldenZone": [
+    {
+      "range": "<2cm",
+      "avgRemain": "+0.39%",
+      "posRate": "39%"
+    },
+    {
+      "range": "2~4cm",
+      "avgRemain": "+2.75%",
+      "posRate": "83%"
+    },
+    {
+      "range": "4~6cm",
+      "avgRemain": "+3.32%",
+      "posRate": "86%"
+    },
+    {
+      "range": "6~8cm",
+      "avgRemain": "+2.71%",
+      "posRate": "97%"
+    },
+    {
+      "range": "≥8cm",
+      "avgRemain": "+0.72%",
+      "posRate": "71%"
+    }
+  ],
+  "icNoLeakTop": [
+    [
+      "amtRank",
+      0.2956
+    ],
+    [
+      "turnover",
+      0.1809
+    ],
+    [
+      "washDepth",
+      0.1745
+    ],
+    [
+      "breadth",
+      0.1548
+    ],
+    [
+      "rule",
+      0.1344
+    ],
+    [
+      "riseAccel",
+      0.1184
+    ],
+    [
+      "vp",
+      0.1158
+    ],
+    [
+      "zbc",
+      0.0521
+    ]
+  ],
+  "icNoLeakBottom": [
+    [
+      "gap",
+      -0.0387
+    ],
+    [
+      "recoverSpd",
+      -0.043
+    ],
+    [
+      "riseSpeed",
+      -0.0594
+    ],
+    [
+      "fundRatio",
+      -0.0653
+    ],
+    [
+      "washRatio",
+      -0.2283
+    ],
+    [
+      "lbc",
+      -0.4926
+    ]
+  ],
+  "icMarkTop": [
+    [
+      "secZdf",
+      0.6009
+    ],
+    [
+      "secRank",
+      0.6009
+    ],
+    [
+      "volStruct",
+      0.4438
+    ],
+    [
+      "recoverSpd",
+      0.4403
+    ],
+    [
+      "zbc",
+      0.3432
+    ],
+    [
+      "amtRank",
+      0.3363
+    ],
+    [
+      "swing",
+      0.3322
+    ],
+    [
+      "pulses",
+      0.2946
+    ]
+  ],
+  "sector": [
+    {
+      "range": "0~1",
+      "n": 136,
+      "hitRate": 0.5,
+      "avgClose": 5.21,
+      "avgMaxGain": 4.6
+    },
+    {
+      "range": "1~2",
+      "n": 42,
+      "hitRate": 1,
+      "avgClose": 10.25,
+      "avgMaxGain": 4.98
+    },
+    {
+      "range": "2~3",
+      "n": 23,
+      "hitRate": 1,
+      "avgClose": 11.31,
+      "avgMaxGain": 4
+    },
+    {
+      "range": "3~4",
+      "n": 21,
+      "hitRate": 1,
+      "avgClose": 9.18,
+      "avgMaxGain": 4.39
+    },
+    {
+      "range": "4~20",
+      "n": 20,
+      "hitRate": 1,
+      "avgClose": 10.99,
+      "avgMaxGain": 2.48
+    }
+  ],
+  "lbc": [
+    {
+      "range": "0~1",
+      "n": 130,
+      "hitRate": 0.792,
+      "avgClose": 8.37,
+      "avgMaxGain": 6.06
+    },
+    {
+      "range": "1~2",
+      "n": 101,
+      "hitRate": 0.594,
+      "avgClose": 6.07,
+      "avgMaxGain": 2.78
+    },
+    {
+      "range": "2~3",
+      "n": 6,
+      "hitRate": 1,
+      "avgClose": 10.01,
+      "avgMaxGain": 0
+    },
+    {
+      "range": "3~4",
+      "n": 3,
+      "hitRate": 1,
+      "avgClose": 10.05,
+      "avgMaxGain": 0
+    },
+    {
+      "range": "4~20",
+      "n": 2,
+      "hitRate": 1,
+      "avgClose": 10.01,
+      "avgMaxGain": 0
+    }
+  ],
+  "dualGate": {
+    "score80": {
+      "n": 12,
+      "hitRate": 0.917
+    },
+    "prob80": {
+      "n": 40,
+      "hitRate": 1
+    },
+    "both": {
+      "n": 6,
+      "names": [
+        "冠农股份",
+        "誉衡药业",
+        "海看股份",
+        "新赛股份",
+        "博云新材",
+        "大元泵业"
+      ]
+    }
+  },
+  "buypoint": {
+    "<3.5cm": {
+      "n": 80,
+      "hitRate": 0.225,
+      "limitRate": 0.087,
+      "avgClose": 2.25,
+      "avgMaxGain": 3.4,
+      "avgMaxDD": -1.4
+    },
+    "3.5~5cm": {
+      "n": 26,
+      "hitRate": 0.769,
+      "limitRate": 0.423,
+      "avgClose": 7.22,
+      "avgMaxGain": 3.69,
+      "avgMaxDD": -1.26
+    },
+    "5~8cm": {
+      "n": 39,
+      "hitRate": 1,
+      "limitRate": 0.821,
+      "avgClose": 9.39,
+      "avgMaxGain": 5.46,
+      "avgMaxDD": -0.98
+    },
+    "≥8cm": {
+      "n": 97,
+      "hitRate": 1,
+      "limitRate": 0.979,
+      "avgClose": 11.11,
+      "avgMaxGain": 5.03,
+      "avgMaxDD": -0.63
+    }
+  },
+  "overview": {
+    "20260827": {
+      "n": 125,
+      "hitRate": 0.784,
+      "limitRate": 0.56,
+      "avgClose": 8.31,
+      "relay": null
+    },
+    "20260828": {
+      "n": 67,
+      "hitRate": 0.373,
+      "limitRate": 0.284,
+      "avgClose": 2.8,
+      "relay": null
+    },
+    "20260831": {
+      "n": 105,
+      "hitRate": 0.6,
+      "limitRate": 0.448,
+      "avgClose": 5.31,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 88
+      }
+    },
+    "20260901": {
+      "n": 50,
+      "hitRate": 0.44,
+      "limitRate": 0.34,
+      "avgClose": 4.93,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 81
+      }
+    },
+    "20260902": {
+      "n": 61,
+      "hitRate": 0.459,
+      "limitRate": 0.41,
+      "avgClose": 3.56,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 52
+      }
+    },
+    "20260903": {
+      "n": 98,
+      "hitRate": 0.571,
+      "limitRate": 0.459,
+      "avgClose": 4.39,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 43
+      }
+    }
+  }
+}

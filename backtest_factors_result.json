@@ -1,0 +1,589 @@
+{
+  "meta": {
+    "total": 506,
+    "intraday": 242,
+    "days": 6
+  },
+  "overview": {
+    "20260827": {
+      "n": 125,
+      "hitRate": 0.784,
+      "limitRate": 0.56,
+      "avgClose": 8.31,
+      "relay": null
+    },
+    "20260828": {
+      "n": 67,
+      "hitRate": 0.373,
+      "limitRate": 0.284,
+      "avgClose": 2.8,
+      "relay": null
+    },
+    "20260831": {
+      "n": 105,
+      "hitRate": 0.6,
+      "limitRate": 0.448,
+      "avgClose": 5.31,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 88
+      }
+    },
+    "20260901": {
+      "n": 50,
+      "hitRate": 0.44,
+      "limitRate": 0.34,
+      "avgClose": 4.93,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 81
+      }
+    },
+    "20260902": {
+      "n": 61,
+      "hitRate": 0.459,
+      "limitRate": 0.41,
+      "avgClose": 3.56,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 52
+      }
+    },
+    "20260903": {
+      "n": 98,
+      "hitRate": 0.571,
+      "limitRate": 0.459,
+      "avgClose": 4.39,
+      "relay": {
+        "regime": "冷",
+        "ztCount": 43
+      }
+    }
+  },
+  "probIc": {
+    "all": {
+      "pearson": 0.4419,
+      "spearman": 0.4223
+    },
+    "intraday": {
+      "pearson": 0.3465,
+      "spearman": 0.457
+    }
+  },
+  "scoreIc": {
+    "all": {
+      "pearson": 0.1637,
+      "spearman": 0.2141
+    },
+    "intraday": {
+      "pearson": 0.1888,
+      "spearman": 0.1632
+    }
+  },
+  "factorIc": [
+    [
+      "secZdf",
+      0.5202
+    ],
+    [
+      "secRank",
+      0.5202
+    ],
+    [
+      "amplitude",
+      0.5126
+    ],
+    [
+      "recoverSpd",
+      0.424
+    ],
+    [
+      "secHot",
+      0.3982
+    ],
+    [
+      "pulses",
+      0.3187
+    ],
+    [
+      "fundRatio",
+      0.2999
+    ],
+    [
+      "volStruct",
+      0.2852
+    ],
+    [
+      "turnover",
+      0.2833
+    ],
+    [
+      "vp",
+      0.2157
+    ],
+    [
+      "riseSpeed",
+      0.1996
+    ],
+    [
+      "rule",
+      0.1632
+    ],
+    [
+      "amtRank",
+      0.1368
+    ],
+    [
+      "swing",
+      0.0891
+    ],
+    [
+      "gap",
+      0.0808
+    ],
+    [
+      "washDepth",
+      0.0071
+    ],
+    [
+      "washRatio",
+      -0.0692
+    ],
+    [
+      "lbc",
+      -0.1148
+    ],
+    [
+      "riseAccel",
+      -0.1816
+    ],
+    [
+      "breadth",
+      -0.3185
+    ],
+    [
+      "zbc",
+      -0.5093
+    ]
+  ],
+  "reverse": {
+    "icAll": 0.5671,
+    "icIntraday": 0.5337,
+    "bins": [
+      {
+        "range": "0~2",
+        "n": 38,
+        "hitRate": 0.079,
+        "avgClose": 1.52,
+        "avgMaxGain": 3.26
+      },
+      {
+        "range": "2~4",
+        "n": 40,
+        "hitRate": 0.6,
+        "avgClose": 5.78,
+        "avgMaxGain": 3.7
+      },
+      {
+        "range": "4~6",
+        "n": 21,
+        "hitRate": 0.905,
+        "avgClose": 8.25,
+        "avgMaxGain": 3.61
+      },
+      {
+        "range": "6~8",
+        "n": 30,
+        "hitRate": 1,
+        "avgClose": 9.73,
+        "avgMaxGain": 6.14
+      },
+      {
+        "range": "8~10",
+        "n": 64,
+        "hitRate": 1,
+        "avgClose": 10.08,
+        "avgMaxGain": 6.25
+      },
+      {
+        "range": "10~100",
+        "n": 33,
+        "hitRate": 1,
+        "avgClose": 13.11,
+        "avgMaxGain": 2.68
+      }
+    ]
+  },
+  "shrink": {
+    "turnover": [
+      {
+        "range": "0~6",
+        "n": 92,
+        "hitRate": 0.533,
+        "avgClose": 5.38,
+        "avgMaxGain": 3.69
+      },
+      {
+        "range": "6~10",
+        "n": 61,
+        "hitRate": 0.836,
+        "avgClose": 8.39,
+        "avgMaxGain": 4.85
+      },
+      {
+        "range": "10~15",
+        "n": 45,
+        "hitRate": 0.756,
+        "avgClose": 7.53,
+        "avgMaxGain": 3.47
+      },
+      {
+        "range": "15~20",
+        "n": 18,
+        "hitRate": 0.833,
+        "avgClose": 9.09,
+        "avgMaxGain": 6.73
+      },
+      {
+        "range": "20~100",
+        "n": 26,
+        "hitRate": 0.962,
+        "avgClose": 11.66,
+        "avgMaxGain": 6.01
+      }
+    ],
+    "volStruct": [
+      {
+        "range": "0~5",
+        "n": 48,
+        "hitRate": 0.833,
+        "avgClose": 8.64,
+        "avgMaxGain": 4.33
+      },
+      {
+        "range": "5~8",
+        "n": 0
+      },
+      {
+        "range": "8~10",
+        "n": 181,
+        "hitRate": 0.669,
+        "avgClose": 6.95,
+        "avgMaxGain": 4.13
+      },
+      {
+        "range": "10~13",
+        "n": 0
+      },
+      {
+        "range": "13~16",
+        "n": 13,
+        "hitRate": 1,
+        "avgClose": 10.65,
+        "avgMaxGain": 8.71
+      }
+    ]
+  },
+  "position": {
+    "gap": [
+      {
+        "range": "-100~1",
+        "n": 110,
+        "hitRate": 0.682,
+        "avgClose": 7.05,
+        "avgMaxGain": 5.87
+      },
+      {
+        "range": "1~3",
+        "n": 77,
+        "hitRate": 0.649,
+        "avgClose": 6.74,
+        "avgMaxGain": 4.13
+      },
+      {
+        "range": "3~5",
+        "n": 26,
+        "hitRate": 0.808,
+        "avgClose": 8.92,
+        "avgMaxGain": 2.64
+      },
+      {
+        "range": "5~7",
+        "n": 11,
+        "hitRate": 1,
+        "avgClose": 10.94,
+        "avgMaxGain": 2.97
+      },
+      {
+        "range": "7~100",
+        "n": 18,
+        "hitRate": 0.944,
+        "avgClose": 9.19,
+        "avgMaxGain": 0.23
+      }
+    ],
+    "amplitude": [
+      {
+        "range": "0~4",
+        "n": 69,
+        "hitRate": 0.478,
+        "avgClose": 5.11,
+        "avgMaxGain": 2.61
+      },
+      {
+        "range": "4~6",
+        "n": 50,
+        "hitRate": 0.54,
+        "avgClose": 4.98,
+        "avgMaxGain": 3.57
+      },
+      {
+        "range": "6~8",
+        "n": 38,
+        "hitRate": 0.789,
+        "avgClose": 7.94,
+        "avgMaxGain": 3.4
+      },
+      {
+        "range": "8~10",
+        "n": 30,
+        "hitRate": 0.967,
+        "avgClose": 9.5,
+        "avgMaxGain": 5.36
+      },
+      {
+        "range": "10~100",
+        "n": 55,
+        "hitRate": 1,
+        "avgClose": 11.35,
+        "avgMaxGain": 7.64
+      }
+    ]
+  },
+  "sector": [
+    {
+      "range": "0~1",
+      "n": 136,
+      "hitRate": 0.5,
+      "avgClose": 5.21,
+      "avgMaxGain": 4.6
+    },
+    {
+      "range": "1~2",
+      "n": 42,
+      "hitRate": 1,
+      "avgClose": 10.25,
+      "avgMaxGain": 4.98
+    },
+    {
+      "range": "2~3",
+      "n": 23,
+      "hitRate": 1,
+      "avgClose": 11.31,
+      "avgMaxGain": 4
+    },
+    {
+      "range": "3~4",
+      "n": 21,
+      "hitRate": 1,
+      "avgClose": 9.18,
+      "avgMaxGain": 4.39
+    },
+    {
+      "range": "4~20",
+      "n": 20,
+      "hitRate": 1,
+      "avgClose": 10.99,
+      "avgMaxGain": 2.48
+    }
+  ],
+  "lbc": [
+    {
+      "range": "0~1",
+      "n": 130,
+      "hitRate": 0.792,
+      "avgClose": 8.37,
+      "avgMaxGain": 6.06
+    },
+    {
+      "range": "1~2",
+      "n": 101,
+      "hitRate": 0.594,
+      "avgClose": 6.07,
+      "avgMaxGain": 2.78
+    },
+    {
+      "range": "2~3",
+      "n": 6,
+      "hitRate": 1,
+      "avgClose": 10.01,
+      "avgMaxGain": 0
+    },
+    {
+      "range": "3~4",
+      "n": 3,
+      "hitRate": 1,
+      "avgClose": 10.05,
+      "avgMaxGain": 0
+    },
+    {
+      "range": "4~20",
+      "n": 2,
+      "hitRate": 1,
+      "avgClose": 10.01,
+      "avgMaxGain": 0
+    }
+  ],
+  "fund": [
+    {
+      "range": "-1~1",
+      "n": 215,
+      "hitRate": 0.684,
+      "avgClose": 6.98,
+      "avgMaxGain": 4.81
+    },
+    {
+      "range": "1~2",
+      "n": 14,
+      "hitRate": 1,
+      "avgClose": 10.72,
+      "avgMaxGain": 1.04
+    },
+    {
+      "range": "2~3",
+      "n": 8,
+      "hitRate": 1,
+      "avgClose": 12.51,
+      "avgMaxGain": 1.27
+    },
+    {
+      "range": "3~5",
+      "n": 4,
+      "hitRate": 1,
+      "avgClose": 12.54,
+      "avgMaxGain": 2.51
+    },
+    {
+      "range": "5~20",
+      "n": 1,
+      "hitRate": 1,
+      "avgClose": 9.96,
+      "avgMaxGain": 0
+    }
+  ],
+  "regime": {
+    "20260827": {
+      "ztCount": null,
+      "regime": null,
+      "hitRate": 0.784,
+      "n": 125
+    },
+    "20260828": {
+      "ztCount": null,
+      "regime": null,
+      "hitRate": 0.373,
+      "n": 67
+    },
+    "20260831": {
+      "ztCount": 88,
+      "regime": "冷",
+      "hitRate": 0.6,
+      "n": 105
+    },
+    "20260901": {
+      "ztCount": 81,
+      "regime": "冷",
+      "hitRate": 0.44,
+      "n": 50
+    },
+    "20260902": {
+      "ztCount": 52,
+      "regime": "冷",
+      "hitRate": 0.459,
+      "n": 61
+    },
+    "20260903": {
+      "ztCount": 43,
+      "regime": "冷",
+      "hitRate": 0.571,
+      "n": 98
+    }
+  },
+  "buypoint": {
+    "<3.5cm": {
+      "n": 80,
+      "hitRate": 0.225,
+      "limitRate": 0.087,
+      "avgClose": 2.25,
+      "avgMaxGain": 3.4,
+      "avgMaxDD": -1.4
+    },
+    "3.5~5cm": {
+      "n": 26,
+      "hitRate": 0.769,
+      "limitRate": 0.423,
+      "avgClose": 7.22,
+      "avgMaxGain": 3.69,
+      "avgMaxDD": -1.26
+    },
+    "5~8cm": {
+      "n": 39,
+      "hitRate": 1,
+      "limitRate": 0.821,
+      "avgClose": 9.39,
+      "avgMaxGain": 5.46,
+      "avgMaxDD": -0.98
+    },
+    "≥8cm": {
+      "n": 97,
+      "hitRate": 1,
+      "limitRate": 0.979,
+      "avgClose": 11.11,
+      "avgMaxGain": 5.03,
+      "avgMaxDD": -0.63
+    }
+  },
+  "dualGate": {
+    "score80": {
+      "n": 12,
+      "hitRate": 0.917
+    },
+    "prob80": {
+      "n": 40,
+      "hitRate": 1
+    },
+    "both": {
+      "n": 6,
+      "names": [
+        "冠农股份",
+        "誉衡药业",
+        "海看股份",
+        "新赛股份",
+        "博云新材",
+        "大元泵业"
+      ]
+    }
+  },
+  "rawBins": {
+    "prob_0.2": {
+      "n": 43,
+      "hitRate": 0.698,
+      "avgClose": 7.77
+    },
+    "prob_0.4": {
+      "n": 16,
+      "hitRate": 0.75,
+      "avgClose": 7.61
+    },
+    "prob_0.6": {
+      "n": 10,
+      "hitRate": 1,
+      "avgClose": 11.01
+    },
+    "prob_0.8": {
+      "n": 40,
+      "hitRate": 1,
+      "avgClose": 10.32
+    }
+  }
+}

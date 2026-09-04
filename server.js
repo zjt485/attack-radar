@@ -16,6 +16,9 @@ const model = require('./model');
 const { runReview } = require('./review');
 const { runIterate } = require('./iterate');
 const bp = require('./buypoint');   // 两阶段买点状态机（延续确认门）
+const { buildDipStatus, DIP_POOL } = require('./dip_watch'); // 低吸买点监听（9月第一周候选，8/30 建）
+const relay = require('./relay');   // 主板首板接力模块（8/31，复刻"耀不拿手机"风格，14:45出名单）
+const md = require('./morning_direct'); // 早盘直取（9/1，江天化学漏报驱动：9:30-9:40 直拉窗口高频扫描）
 
 // 扫描间隔：每轮结束后随机 2~5 分钟（随机化本身也是防限流手段）
 function nextInterval() { return (2 + Math.random() * 3) * 60000; }
@@ -35,7 +38,11 @@ const state = {
   // watches: code -> buypoint 观察态（报警后创建，每轮喂分钟线推进）
   // buySignals: 已触发买点的时间线（看板展示 + 样本落盘）
   watches: {},
-  buySignals: []
+  buySignals: [],
+  // ---- 早盘直取（9/1，江天化学漏报驱动）----
+  // mdSignals: 已触发的早盘直取买点时间线；mdCodes: 已报过的票（每只每日一条）
+  mdSignals: [],
+  mdCodes: new Set()
 };
 
 function todayStr() {
@@ -311,6 +318,9 @@ function restoreSamples(day) {
 // 启动时恢复（午休/盘后重启也能立刻看到上午的报警时间线，不必等下一轮扫描）
 (function restoreOnBoot() {
   const day = todayStr();
+  // 9/2 修复：同日重启不重复复盘（9/1 实证：收盘后重启二次跑复盘，
+  // iterate 幂等跳过返回 {skipped}，日志打出"迭代vundefined"）
+  if (fs.existsSync(path.join(DIR, 'reviews', `${day}.json`))) state.reviewDone = true;
   const samples = restoreSamples(day);
   const n = Object.keys(samples).length;
   if (!n) return;
@@ -330,7 +340,18 @@ function restoreSamples(day) {
     state.stocks[s.code].alerted[80] = true;   // 已报过，重启后不重复报警
   }
   state.alerts.sort((a, b) => (b.t || '').localeCompare(a.t || ''));
-  console.log(`[attack-radar] 启动恢复：${n} 个样本，${state.alerts.length} 条报警`);
+  state.relay = relay.loadRelay(day);   // 当日接力快照恢复（盘后重启也能看到名单）
+  // 早盘直取买点恢复（9:30-9:40 窗口产物，重启不丢上午的直取信号）
+  state.mdSignals = md.loadSignals(day);
+  state.mdCodes = new Set(state.mdSignals.map(s => s.code));
+  for (const s of state.mdSignals) {
+    state.buySignals.push({
+      t: s.t, code: s.code, name: s.name, price: s.price,
+      mode: '早盘直取', confirmT: s.t, alertT: s.t, alertPrice: s.price,
+      dropPct: 0, curPrice: s.price, entryPct: s.pct, pctVsAlert: 0, restored: true
+    });
+  }
+  console.log(`[attack-radar] 启动恢复：${n} 个样本，${state.alerts.length} 条报警，${state.mdSignals.length} 条早盘直取${state.relay ? '，接力名单' + state.relay.n + '只' : ''}`);
 })();
 
 async function scan(force) {
@@ -338,6 +359,17 @@ async function scan(force) {
   if (state.day !== day) {
     state.day = day; state.stocks = {}; state.alerts = []; state.log = []; state.rounds = []; state.jjSnapshot = null; state.samples = restoreSamples(day); state.topList = []; state.reviewDone = false;
     state.watches = {}; state.buySignals = [];   // 买点观察态跨日重置
+    state.dip = []; state.dipAlerted = {};       // 低吸监听跨日重置（每天重新报一次）
+    state.relay = relay.loadRelay(day);          // 接力快照跨日重置（有当日落盘就恢复）
+    state.mdSignals = md.loadSignals(day);       // 早盘直取跨日重置（有当日落盘就恢复）
+    state.mdCodes = new Set(state.mdSignals.map(s => s.code));
+    for (const s of state.mdSignals) {
+      state.buySignals.push({
+        t: s.t, code: s.code, name: s.name, price: s.price,
+        mode: '早盘直取', confirmT: s.t, alertT: s.t, alertPrice: s.price,
+        dropPct: 0, curPrice: s.price, entryPct: s.pct, pctVsAlert: 0, restored: true
+      });
+    }
     // 从恢复的样本重建报警时间线（重启不丢上午的报警记录）
     for (const s of Object.values(state.samples)) {
       if (s.alertT) {
@@ -378,8 +410,29 @@ async function scan(force) {
   for (const r of rank) {
     if (!pool.has(r.code)) { pool.set(r.code, { name: r.name, src: '成交额榜', ltszYi: r.ltszYi, amtWan: r.amtWan }); stat.poolRank++; }
   }
-  const allCodes = [...new Set([...pool.keys(), ...WATCH])];
+  const allCodes = [...new Set([...pool.keys(), ...WATCH, ...DIP_POOL.map(d => d.code)])];
   const quotes = await getBatchQuote(allCodes);
+
+  // ---- 低吸买点监听（9月第一周候选，8/30 建）：每轮喂行情刷新四态 ----
+  state.dip = buildDipStatus(quotes);
+  const dipHits = state.dip.filter(d => d.status === 'hit');
+  if (dipHits.length) {
+    for (const d of dipHits) {
+      const key = 'dip_' + d.code;
+      if (!state.dipAlerted) state.dipAlerted = {};
+      if (!state.dipAlerted[key]) {
+        state.dipAlerted[key] = true;
+        state.alerts.unshift({
+          t: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+          code: d.code, name: d.name, level: '低吸买区', score: '-',
+          prob: null, confidence: null,
+          pct: d.pct, tags: [d.group], signals: `进入买区 ${d.buyLow}~${d.buyHigh}`,
+          price: d.price, src: '低吸监听', lbc: 0
+        });
+        console.log(`[低吸买点] ${d.name}(${d.code}) 现价${d.price} 进入买区 ${d.buyLow}~${d.buyHigh}`);
+      }
+    }
+  }
 
   // 板块联动统计（自洽口径：用池内同板块票算涨停家数与平均涨幅，不依赖外部行业映射）
   const secAgg = {};
@@ -521,17 +574,17 @@ async function scan(force) {
       alertT: prevSample?.alertT, alertPrice: prevSample?.alertPrice
     };
 
-    // 报警：概率阈值（模型自适应）+ 规则分≥80 双确认，每档每天一次
+    // 报警：规则分≥80 单门主导（9/3 因因子回测：prob 对未来剩余收益 IC≈0，
+    //   双门交集恒空=零报警根源）。概率降级为置信展示，不作硬门槛。
     // 炸板降权门（8/28 用户拍板，康盛案例驱动）：
     //   仍在炸板池（未回封）的票是"炸板回落"角色，不是干净进攻形态——
     //   炸板≥2次（反复炸板，出货嫌疑）→ 直接拒报；炸板1次 → 报警门槛抬高10分
     //   若已回封涨停则不在炸板池（在涨停池），不受降权影响
     const zbc = meta.zbc || 0;
     const zbGate = meta.src === '炸板' ? (zbc >= 2 ? Infinity : 10) : 0;
-    const th = mState.alertThreshold || 0.5;
     for (const [lv, name_] of [[80, '强势']]) {
       if (zbGate === Infinity) continue;   // 反复炸板：静默拒报
-      if (r.score >= lv + zbGate && pred.prob >= th && !st.alerted[lv]) {
+      if (r.score >= lv + zbGate && !st.alerted[lv]) {
         st.alerted[lv] = true;
         // 首次报警时刻/价格写入样本 = 复盘的"入场点"（算报警后浮盈/回撤）
         if (state.samples[code]) {
@@ -556,13 +609,13 @@ async function scan(force) {
             w.lastFeedT = bars[bars.length - 1].t;
             w.elapsed = 0;
             state.watches[code] = w;
-            // 低位直取（报警涨幅<3.5cm）：创建瞬间即买点，确认门在此档是累赘
+            // 直取区（2~5cm）：创建瞬间即买点，确认门在此档是累赘
             if (w.status === 'entry') {
               const ent = w.entry;
               state.buySignals.unshift({
                 t: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
                 code, name: q.name, price: ent.price,
-                mode: '低位直取',
+                mode: '直取',
                 confirmT: ent.confirmT, alertT: w.alertT, alertPrice: w.alertPrice,
                 dropPct: 0, curPrice: q.price, entryPct: elig.pct !== undefined ? +elig.pct.toFixed(2) : 0,
                 pctVsAlert: 0
@@ -572,7 +625,7 @@ async function scan(force) {
                 state.samples[code].buyPrice = ent.price;
                 state.samples[code].buyMode = 'direct';
               }
-              console.log(`[买点] ${q.name}(${code}) ${w.alertT}报警 → 低位直取 @${ent.price}(+${(elig.pct || 0).toFixed(1)}%)`);
+              console.log(`[买点] ${q.name}(${code}) ${w.alertT}报警 → 直取 @${ent.price}(+${(elig.pct || 0).toFixed(1)}%)`);
             }
           }
         }
@@ -589,8 +642,18 @@ async function scan(force) {
       code: s.code, name: s.name, src: s.src, price: s.quote.price,
       pct: +((s.quote.price / s.quote.prevClose - 1) * 100).toFixed(2),
       score: s.result.score, prob: s.prob, confidence: s.confidence,
-      signals: s.signals, hybk: s.hybk, lbc: s.lbc
+      signals: s.signals, hybk: s.hybk,       lbc: s.lbc
     }));
+
+  // ---- 主板首板接力（14:45-14:57 窗口每日只出一次，落盘供 relay_verify.py T+2 结算） ----
+  const hmr = new Date().getHours() * 100 + new Date().getMinutes();
+  if (!state.relay && hmr >= 1445 && hmr <= 1457) {
+    try {
+      const r = await relay.buildRelay(day);
+      relay.saveRelay(r);
+      state.relay = r;
+    } catch (e) { console.error('[relay build]', e.message); }
+  }
 
   // ---- 样本文件落盘（整份覆写，崩溃最多丢一轮） ----
   try {
@@ -628,7 +691,11 @@ function snapshot() {
     rounds: state.rounds || [], alerts: state.alerts, jj: state.jjSnapshot || null,
     jjPre: getJJPre() || null,
     topList: state.topList || [],
+    relay: state.relay || relay.loadRelay(todayStr()) || null,   // 主板首板接力（14:45出）
     buySignals: state.buySignals || [],
+    mdSignals: state.mdSignals || [],   // 早盘直取买点时间线（9:30-9:40）
+    mdStatus: md.windowStatus(),        // off|pre|active|post（看板提示用）
+    dip: state.dip || [],   // 低吸买点监听（9月第一周候选）
     // 买点观察态（报警后进场跟踪）：只暴露看板需要的字段
     watches: Object.entries(state.watches || {}).map(([code, w]) => ({
       code, name: (state.stocks[code] || {}).name, alertT: w.alertT, alertPrice: w.alertPrice,
@@ -650,7 +717,10 @@ async function doReviewAndIterate() {
     const report = await runReview(day);
     if (report.error) { console.log('[review] 跳过:', report.error); state.reviewDone = false; return; }
     const iter = runIterate(day);
-    console.log(`[review] ${day} 完成：候选${report.n} 命中率${report.hitRate}% 涨停率${report.limitRate}% | 迭代v${iter.version} ${(iter.action || []).join(';')}`);
+    // 9/2 修复：iterate 幂等跳过时（同日二次复盘）返回 {skipped}，
+    // 原来直接打"迭代vundefined"——现在跳过时明说原因
+    const iterInfo = iter.skipped ? `迭代跳过(${iter.skipped})` : `迭代v${iter.version} ${(iter.action || []).join(';')}`;
+    console.log(`[review] ${day} 完成：候选${report.n} 命中率${report.hitRate}% 涨停率${report.limitRate}% | ${iterInfo}`);
     state.lastReview = { day, report, iter };
   } catch (e) {
     console.error('[review error]', e.message);
@@ -687,16 +757,18 @@ function maybeLaunchJJBridge() {
   } catch (e) { console.error('[jj-bridge] 拉起失败:', e.message); }
 }
 
-// 读取盘前抢筹产出（9:25 首轮起可用；同一天内缓存，跨日自动失效；空产出视为无数据）
+// 读取盘前抢筹产出（9:25 首轮起可用；跨日自动失效；空产出不缓存，等结算后重读）
+// 8/31→9/1 修复：原先空结果也缓存一整天，导致 9:25 读了一次空就永远返回空——
+// 桥 9:31 结算完文件已就位，看板却一整天看不到。现在：只有拿到真数据才缓存。
 let jjPreCache = { day: null, data: null };
 function getJJPre() {
   const day = todayStr();
-  if (jjPreCache.day === day) return jjPreCache.data;
+  if (jjPreCache.day === day && jjPreCache.data) return jjPreCache.data;
   try {
     const j = JSON.parse(fs.readFileSync(path.join(DIR, 'jj_pre.json'), 'utf-8'));
-    jjPreCache = { day, data: (j.day === day && j.n > 0) ? j : null };
-  } catch (e) { jjPreCache = { day, data: null }; }
-  return jjPreCache.data;
+    if (j.day === day && j.n > 0) { jjPreCache = { day, data: j }; return j; }
+  } catch (e) {}
+  return null;
 }
 
 const server = http.createServer((req, res) => {
@@ -780,7 +852,10 @@ async function loop() {
     }
     // 非交易时段：零请求，直接睡到下一个交易时段开始（跨午休/跨周末都精确计算）
     let wait = Math.max(30000, msToNextSession());
-    if (wd >= 1 && wd <= 5 && hm >= 850 && hm < 925) wait = Math.min(wait, 60000);  // 盘前段别睡过竞价桥拉起窗口
+    // 盘前段别睡过竞价桥拉起窗口（8/31教训：8:28启动的进程 hm=828<850 不满足早醒条件，
+    // 一觉睡到9:25，9:05-9:18 的拉起窗口在睡梦中错过 → 竞价桥全天没跑）
+    // 修复：8:20 起就保持每分钟醒一次（覆盖服务的各种启动时间）
+    if (wd >= 1 && wd <= 5 && hm >= 820 && hm < 925) wait = Math.min(wait, 60000);
     console.log(`[attack-radar] 非交易时段，休眠 ${Math.round(wait / 60000)} 分钟后再看`);
     setTimeout(loop, wait);
     return;
@@ -792,6 +867,41 @@ async function loop() {
   setTimeout(loop, wait);
 }
 setTimeout(loop, 3000);
+
+// ---------- 早盘直取高频定时器（9/1，独立于主扫描） ----------
+// 主扫描 2~5 分钟一轮，直拉票的 <+3.5% 窗口只存在 2-3 分钟，必须高频抓。
+// 9:30-9:40 窗口内每 35 秒一趟；窗口外睡眠不耗请求。
+(async function mdLoop() {
+  const WD = () => new Date().getDay();
+  const HM = () => { const d = new Date(); return d.getHours() * 100 + d.getMinutes(); };
+  const st = md.windowStatus();
+  if (st === 'active') {
+    try { await md.tick(state); } catch (e) { console.error('[morning_direct]', e.message); }
+    setTimeout(mdLoop, 35000);
+    return;
+  }
+  // 窗口外：睡到下一个窗口（当天还没到9:30→睡到9:30；已过/周末→睡到明早8:50再探）
+  const now = new Date();
+  const toSec = h => Math.floor(h / 100) * 3600 + (h % 100) * 60;
+  const hm = HM();
+  let wait;
+  if (WD() >= 1 && WD() <= 5 && hm < 930) {
+    wait = (toSec(930) - toSec(hm)) * 1000;
+  } else {
+    wait = Math.max(60000, msToNextSession());
+  }
+  setTimeout(mdLoop, Math.min(wait, 24 * 3600 * 1000));
+})();
+
+// 低吸监听启动初始化：盘外也先拉一次行情填看板（周末/盘后打开就有数据；交易时段由 scan 每轮刷新）
+(async () => {
+  try {
+    const codes = DIP_POOL.map(d => d.code);
+    const quotes = await getBatchQuote(codes);
+    state.dip = buildDipStatus(quotes);
+    console.log(`[dip-watch] 初始化完成，${state.dip.length} 只候选已载入看板`);
+  } catch (e) { console.error('[dip-watch init]', e.message); }
+})();
 
 // 收盘后把当天报警日志落盘，供复盘
 process.on('SIGINT', () => {
