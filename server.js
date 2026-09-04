@@ -20,6 +20,7 @@ const { buildDipStatus, DIP_POOL } = require('./dip_watch'); // 低吸买点监�
 const relay = require('./relay');   // 主板首板接力模块（8/31，复刻"耀不拿手机"风格，14:45出名单）
 const md = require('./morning_direct'); // 早盘直取（9/1，江天化学漏报驱动：9:30-9:40 直拉窗口高频扫描）
 const notify = require('./notify');     // 桌面提醒（9/4：报警/买点触发即弹窗，不再只写看板）
+const track = require('./track');       // 推荐跟踪（9/4：推荐价 vs 现价对比，落盘 samples/rec_track_*.json）
 
 // 扫描间隔：每轮结束后随机 2~5 分钟（随机化本身也是防限流手段）
 function nextInterval() { return (2 + Math.random() * 3) * 60000; }
@@ -345,12 +346,14 @@ function restoreSamples(day) {
   // 早盘直取买点恢复（9:30-9:40 窗口产物，重启不丢上午的直取信号）
   state.mdSignals = md.loadSignals(day);
   state.mdCodes = new Set(state.mdSignals.map(s => s.code));
+  track.load(day);   // 推荐跟踪恢复（重启不丢当日推荐价记录，现价由刷新循环补齐）
   for (const s of state.mdSignals) {
     state.buySignals.push({
       t: s.t, code: s.code, name: s.name, price: s.price,
       mode: '早盘直取', confirmT: s.t, alertT: s.t, alertPrice: s.price,
       dropPct: 0, curPrice: s.price, entryPct: s.pct, pctVsAlert: 0, restored: true
     });
+    track.record({ type: '早盘直取', code: s.code, name: s.name, price: s.price, t: s.t });
   }
   console.log(`[attack-radar] 启动恢复：${n} 个样本，${state.alerts.length} 条报警，${state.mdSignals.length} 条早盘直取${state.relay ? '，接力名单' + state.relay.n + '只' : ''}`);
 })();
@@ -364,12 +367,14 @@ async function scan(force) {
     state.relay = relay.loadRelay(day);          // 接力快照跨日重置（有当日落盘就恢复）
     state.mdSignals = md.loadSignals(day);       // 早盘直取跨日重置（有当日落盘就恢复）
     state.mdCodes = new Set(state.mdSignals.map(s => s.code));
+    track.load(day);   // 推荐跟踪跨日重置（读当日落盘）
     for (const s of state.mdSignals) {
       state.buySignals.push({
         t: s.t, code: s.code, name: s.name, price: s.price,
         mode: '早盘直取', confirmT: s.t, alertT: s.t, alertPrice: s.price,
         dropPct: 0, curPrice: s.price, entryPct: s.pct, pctVsAlert: 0, restored: true
       });
+      track.record({ type: '早盘直取', code: s.code, name: s.name, price: s.price, t: s.t });
     }
     // 从恢复的样本重建报警时间线（重启不丢上午的报警记录）
     for (const s of Object.values(state.samples)) {
@@ -432,6 +437,7 @@ async function scan(force) {
         });
         console.log(`[低吸买点] ${d.name}(${d.code}) 现价${d.price} 进入买区 ${d.buyLow}~${d.buyHigh}`);
         notify.send({ type: '低吸买区', code: d.code, name: d.name, text: `现价${d.price} 进入买区 ${d.buyLow}~${d.buyHigh} ${d.group}` });
+        track.record({ type: '低吸买区', code: d.code, name: d.name, price: d.price, note: `买区 ${d.buyLow}~${d.buyHigh} ${d.group || ''}` });
       }
     }
   }
@@ -524,6 +530,7 @@ async function scan(force) {
           }
           console.log(`[买点] ${q.name}(${code}) ${bw.alertT}报警 → ${ent.mode}买点 ${ent.t}@${ent.price}`);
           notify.send({ type: '买点确认', code, name: q.name, text: `${ent.mode}买点 ${ent.t}@${ent.price} 距报警 ${(q.price / bw.alertPrice - 1) * 100 >= 0 ? '+' : ''}${((q.price / bw.alertPrice - 1) * 100).toFixed(1)}%` });
+          track.record({ type: '买点确认', code, name: q.name, price: ent.price, note: `${ent.mode} 报警@${bw.alertPrice}` });
           break;
         }
         if (bw.status === 'rejected') {
@@ -604,6 +611,7 @@ async function scan(force) {
         state.log.push({ ts: Date.now(), code, name: q.name, level: name_, score: r.score, prob: pred.prob, tags: r.tags });
         // 9/4：报警即弹窗+提示音（此前只写看板；用户盘中不盯板就漏了易点天下这类）
         notify.send({ type: '强势报警', code, name: q.name, text: `score ${r.score} +${r.d.pct}% @${q.price} ${r.tags.slice(0, 3).join('/')} ${meta.src}` });
+        track.record({ type: '强势报警', code, name: q.name, price: q.price, note: `score ${r.score} ${r.tags.slice(0, 3).join('/')} ${meta.src}` });
         // 两阶段买点：报警后先过"介入资格审查"（只做20cm + 报警<5cm，8/28用户拍板）
         if (!state.watches[code]) {
           const elig = bp.eligibleWatch(code, q.price, q.prevClose);
@@ -632,6 +640,7 @@ async function scan(force) {
               }
               console.log(`[买点] ${q.name}(${code}) ${w.alertT}报警 → 直取 @${ent.price}(+${(elig.pct || 0).toFixed(1)}%)`);
               notify.send({ type: '直取买点', code, name: q.name, text: `报警后即刻直取 @${ent.price} (+${(elig.pct || 0).toFixed(1)}%)` });
+              track.record({ type: '直取买点', code, name: q.name, price: ent.price, note: `报警@${w.alertPrice}` });
             }
           }
         }
@@ -702,6 +711,7 @@ function snapshot() {
     mdSignals: state.mdSignals || [],   // 早盘直取买点时间线（9:30-9:40）
     mdStatus: md.windowStatus(),        // off|pre|active|post（看板提示用）
     dip: state.dip || [],   // 低吸买点监听（9月第一周候选）
+    track: track.list(),    // 推荐跟踪（推荐价 vs 现价，9/4）
     // 买点观察态（报警后进场跟踪）：只暴露看板需要的字段
     watches: Object.entries(state.watches || {}).map(([code, w]) => ({
       code, name: (state.stocks[code] || {}).name, alertT: w.alertT, alertPrice: w.alertPrice,
@@ -907,6 +917,15 @@ setTimeout(loop, 3000);
     state.dip = buildDipStatus(quotes);
     console.log(`[dip-watch] 初始化完成，${state.dip.length} 只候选已载入看板`);
   } catch (e) { console.error('[dip-watch init]', e.message); }
+})();
+
+// ---- 推荐跟踪刷新循环（9/4）：交易时段每 45s 给已推荐票补现价（推荐价 vs 现价对比） ----
+// 独立于主扫描：跟踪的票早已不在候选池里，只有这里持续更新它们的 lastPrice/chgPct
+(async function trackLoop() {
+  try {
+    if (track.count() && inSession(false)) { await track.refreshQuotes(); }
+  } catch (e) { console.error('[track refresh]', e.message); }
+  setTimeout(trackLoop, 45000);
 })();
 
 // 收盘后把当天报警日志落盘，供复盘

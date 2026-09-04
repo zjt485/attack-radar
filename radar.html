@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>进攻分时雷达</title>
 <style>
-  body { margin:0; padding:16px 20px; background:#f4f3ef; color:#2c2c2a; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; font-size:13px; }
+  body { margin:0; padding:16px 20px 24px; background:#f4f3ef; color:#2c2c2a; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; font-size:13px; }
   h1 { font-size:16px; font-weight:500; margin:0 0 2px; }
-  .sub { color:#6a6a66; font-size:12px; margin-bottom:14px; }
+  .sub { color:#6a6a66; font-size:12px; margin-bottom:10px; }
   .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; }
   .lv-strong { background:#e24b4a; color:#fff; }
   .lv-watch { background:#ef9f27; color:#fff; }
@@ -32,7 +32,7 @@
   .conf { font-size:11px; color:#854f0b; }
   .sig { display:inline-block; background:#faf1e0; color:#633806; border-radius:4px; padding:0 5px; margin:1px 3px 1px 0; font-size:11px; }
   /* 操作栏按钮 */
-  .actionbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .actionbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:8px; border:0.5px solid #d8d6cd; background:#fff; color:#444441; font-size:12px; font-family:inherit; cursor:pointer; transition:background 0.15s, border-color 0.15s; }
   .btn:hover { background:#faf9f5; border-color:#b4b2a9; }
   .btn:active { background:#f1efe8; }
@@ -43,6 +43,19 @@
   .btn.danger:hover { background:#fcebeb; }
   .btn .ico { font-size:13px; line-height:1; }
   #actionMsg { font-size:11px; color:#888780; align-self:center; min-width:120px; }
+  /* ---------- Tab 导航 ---------- */
+  .tabbar { display:flex; gap:6px; flex-wrap:wrap; position:sticky; top:0; z-index:20; background:#f4f3ef; padding:8px 0; margin:0 0 12px; border-bottom:1px solid #e4e2d8; }
+  .tabbtn { position:relative; padding:7px 16px; border-radius:9px; border:0.5px solid #d8d6cd; background:#fff; color:#6a6a66; font-size:13px; font-family:inherit; cursor:pointer; transition:background 0.15s, border-color 0.15s, color 0.15s; }
+  .tabbtn:hover { background:#faf9f5; border-color:#b4b2a9; }
+  .tabbtn.active { background:#2c2c2a; color:#fff; border-color:#2c2c2a; }
+  .tab-badge { display:inline-block; min-width:17px; margin-left:6px; padding:0 4px; border-radius:9px; background:#e24b4a; color:#fff; font-size:11px; line-height:17px; text-align:center; }
+  .tab-badge.dim { background:#d3d1c7; color:#5f5e5a; }
+  .tab-badge.ok { background:#52c41a; }
+  .tab-badge.gold { background:#d4b106; }
+  .tab-badge.blue { background:#1890ff; }
+  .tabbtn.active .tab-badge.dim { background:#5f5e5a; color:#fff; }
+  .tabpanel { display:none; }
+  .tabpanel.active { display:block; }
 </style>
 </head>
 <body>
@@ -57,63 +70,134 @@
   <span id="actionMsg"></span>
 </div>
 
-<div class="card" style="border:1.5px solid #f0997b">
-  <h2>每日候选股（按涨停概率排序 · 概率=模型输出并经校准 · 置信度=概率×模型成熟度）</h2>
-  <div id="top"><div class="empty">等待首轮评分…</div></div>
+<div class="tabbar" id="tabbar">
+  <button class="tabbtn" data-tab="pre" onclick="switchTab('pre')">盘前竞价 <span class="tab-badge dim" id="tabBadgePre">·</span></button>
+  <button class="tabbtn" data-tab="attack" onclick="switchTab('attack')">盘中进攻 <span class="tab-badge dim" id="tabBadgeAttack">0</span></button>
+  <button class="tabbtn" data-tab="buypoint" onclick="switchTab('buypoint')">买点纪律 <span class="tab-badge dim" id="tabBadgeBuy">0</span></button>
+  <button class="tabbtn" data-tab="sys" onclick="switchTab('sys')">系统</button>
 </div>
 
-<div class="card">
-  <h2>报警时间线（规则分≥80 且 概率≥阈值 双确认 · 每档每日只报一次）</h2>
-  <div id="alerts"><div class="empty">暂无报警</div></div>
-</div>
-
-<div class="card" style="border:1.5px solid #52c41a">
-  <h2>买点信号（20cm短线博弈纪律 + 延续确认门 · 8/28 定稿）</h2>
-  <div class="detail">
-    用户纪律：只做 20cm（创业板），买点价必须 &lt;+5%（小于5cm介入才有博弈价值）。<br>
-    分两档：<b>&lt;+3.5% 低位直取</b>（报警即买点，天山型）；<b>+3.5~5% 走确认门</b>（突破报警价+0.6%确认延续后，缩量微回踩/深回踩放量企稳才买）。报警后45分钟不创新高=派发顶放弃；破-4%防线放弃；非20cm/报警≥5%不进观察。<br>
-    回测：天山低位直取+16.6%；康盛/深信服/麦捷/先导/光智/鑫磊全部正确出局。
+<!-- ============ Tab 1: 盘前竞价 ============ -->
+<div class="tabpanel" id="panel-pre">
+  <div class="card" style="border:1.5px solid #d4b106">
+    <h2>盘前抢筹榜（mootdx 竞价段撮合 · 9:15-9:25 轮询 | 撮合价+匹配量+9:20后趋势，强度分0-100）</h2>
+    <div id="jjpre"><div class="empty">今日盘前数据尚未生成（竞价桥 9:12 自动拉起，9:25 后出榜）</div></div>
   </div>
-  <div id="buySignals"><div class="empty">暂无买点信号</div></div>
-  <div id="watches" style="margin-top:8px"></div>
+
+  <div class="card">
+    <h2>竞价抢筹快照（自建 · 每日 9:25-9:45 抓一次后冻结 | 竞价高开2~9% + 成交额分市值门槛 + 排一字/ST/科创）</h2>
+    <div id="jj"><div class="empty">今日快照尚未生成（9:25-9:45 首轮扫描自动抓取）</div></div>
+  </div>
+
+  <div class="card" style="border:1.5px solid #722ed1">
+    <h2>主板首板接力名单（每日14:45出 · 首板+主板10cm+前10日&lt;9.5%+≤10元，按封单额降序 · 回测40日验证）</h2>
+    <div class="detail">
+      纪律：收盘买 → 次日高开&gt;2%持有看收盘，否则次日开盘卖；最多拿2天，收盘不创两日新高必走 · 单只≤1成 · 冷日不出手 · 只出名单不碰持仓
+    </div>
+    <div id="relay"><div class="empty">14:45-14:57 自动出名单…</div></div>
+  </div>
 </div>
 
-<div class="card">
-  <h2>盘前抢筹榜（mootdx 竞价段撮合 · 9:15-9:25 轮询 | 撮合价+匹配量+9:20后趋势，强度分0-100）</h2>
-  <div id="jjpre"><div class="empty">今日盘前数据尚未生成（竞价桥 9:12 自动拉起，9:25 后出榜）</div></div>
+<!-- ============ Tab 2: 盘中进攻 ============ -->
+<div class="tabpanel" id="panel-attack">
+  <div class="card" style="border:1.5px solid #f0997b">
+    <h2>每日候选股（按涨停概率排序 · 概率=模型输出并经校准 · 置信度=概率×模型成熟度）</h2>
+    <div id="top"><div class="empty">等待首轮评分…</div></div>
+  </div>
+
+  <div class="card">
+    <h2>报警时间线（规则分≥80 且 概率≥阈值 双确认 · 每档每日只报一次）</h2>
+    <div id="alerts"><div class="empty">暂无报警</div></div>
+  </div>
+
+  <div class="card">
+    <h2>候选评分榜（涨停生态 + 成交额榜前80 + 自选 | 一字/科创/已封死不参评；盘中封死涨停的保留在榜但停评分，未涨停的持续评分）</h2>
+    <table>
+      <colgroup>
+        <col style="width:120px"><col style="width:52px"><col style="width:70px"><col style="width:64px"><col style="width:52px"><col style="width:46px"><col style="width:110px"><col>
+      </colgroup>
+      <thead><tr><th>标的</th><th>来源</th><th>现价/涨幅</th><th>换手</th><th>评分</th><th>档位</th><th>分时得分线</th><th>特征</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="8" class="empty">等待首轮扫描…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>评分口径（基础100 + 量价配合奖励≤20，封顶100）</h2>
+    <div class="detail">
+      高开10 + 洗盘深度与量能20 + 关键防守（不破前低，一票否决）20 + V型收复竞价价20 + 低点抬高15 + 量结构15。<br>
+      量价配合奖励（量化拉升指纹）：放量脉冲5 + 脉冲递升5 + 脉冲后守稳5 + 近20根量价同步5；奖励≥15 贴"量化攻击结构"标签。<br>
+      否决项（对总分一并封顶）：破前低&gt;3%封顶40 / 翻绿封顶50 / 洗盘后创新低封顶45 / 收复后不足8根封顶75。强势≥80，关注≥60。
+    </div>
+  </div>
 </div>
 
-<div class="card">
-  <h2>竞价抢筹快照（自建 · 每日 9:25-9:45 抓一次后冻结 | 竞价高开2~9% + 成交额分市值门槛 + 排一字/ST/科创）</h2>
-  <div id="jj"><div class="empty">今日快照尚未生成（9:25-9:45 首轮扫描自动抓取）</div></div>
+<!-- ============ Tab 3: 买点纪律 ============ -->
+<div class="tabpanel" id="panel-buypoint">
+  <div class="card" style="border:1.5px solid #eb2f96">
+    <h2>早盘直取（9:30-9:40 高频扫描 · 直拉窗口 +1~3.5% · 量价加速确认 · 只做20cm）</h2>
+    <div class="detail">
+      专抓江天化学型漏网票：平开/小幅高开后直线拉升，&lt;+3.5% 的介入窗口只存在 2-3 分钟，主扫描（2~5分钟/轮）抓不住。<br>
+      双网扫描：东财涨幅榜前80（主网）+ 盘前抢筹榜20cm票（辅网）→ 涨幅落在 1~3.5% → 分钟线确认：≥2连涨 + 最新量≥首根1.2倍 + 距日内高点回落≤1.5% → 直出买点。
+    </div>
+    <div id="mdirect"><div class="empty">9:30 开始高频扫描…</div></div>
+  </div>
+
+  <div class="card" style="border:1.5px solid #52c41a">
+    <h2>买点信号（20cm短线博弈纪律 + 延续确认门 · 8/28 定稿）</h2>
+    <div class="detail">
+      用户纪律：只做 20cm（创业板），买点价必须 &lt;+5%（小于5cm介入才有博弈价值）。<br>
+      分两档：<b>&lt;+3.5% 低位直取</b>（报警即买点，天山型）；<b>+3.5~5% 走确认门</b>（突破报警价+0.6%确认延续后，缩量微回踩/深回踩放量企稳才买）。报警后45分钟不创新高=派发顶放弃；破-4%防线放弃；非20cm/报警≥5%不进观察。<br>
+      回测：天山低位直取+16.6%；康盛/深信服/麦捷/先导/光智/鑫磊全部正确出局。
+    </div>
+    <div id="buySignals"><div class="empty">暂无买点信号</div></div>
+    <div id="watches" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" style="border:1.5px solid #1890ff">
+    <h2>低吸买点监听（9月第一周候选 · PCB中游/有色/黄金 | 买区四态跟踪，8/30 建）</h2>
+    <div class="detail">
+      与上方"进攻买点"（涨停生态/20cm博弈）不同，这里是<b>低吸型</b>：等回踩进买区，不追高。<br>
+      状态：<b style="color:#c2362f">已到买区</b> = 现价在介入区间内（真买还需收盘位置&gt;70%确认）· <b style="color:#d48806">接近</b> = 距买区&lt;1.5% · 等回踩 = 未到位 · 破位失效 = 跌破失效线放弃 · 弱势 = 跌穿买区下沿未破位。
+    </div>
+    <div id="dip"><div class="empty">等待首轮扫描…</div></div>
+  </div>
+
+  <div class="card" style="border:1.5px solid #722ed1">
+    <h2>推荐跟踪（推荐价 vs 现价 · 9/4 建）</h2>
+    <div class="detail">
+      每次报警/买点触发即记录<b>推荐价</b>，此后每 45 秒自动补现价 → chg% = 现价相对推荐价的实时盈亏。<br>
+      目的：信号不准白报（易点天下 09:31 直取 +4.76% → 当日涨停 +14.5% 这类命中要有据可查，误报也要被记录）。
+    </div>
+    <div id="track"><div class="empty">暂无推荐记录</div></div>
+  </div>
 </div>
 
-<div class="card">
-  <h2>上一轮查询日志（候选池 → 过滤 → 评分 的完整漏斗）</h2>
-  <div id="scanlog"><div class="empty">等待首轮扫描…</div></div>
-</div>
+<!-- ============ Tab 4: 系统 ============ -->
+<div class="tabpanel" id="panel-sys">
+  <div class="card">
+    <h2>上一轮查询日志（候选池 → 过滤 → 评分 的完整漏斗）</h2>
+    <div id="scanlog"><div class="empty">等待首轮扫描…</div></div>
+  </div>
 
-<div class="card">
-  <h2>候选评分榜（涨停生态 + 成交额榜前80 + 自选 | 一字/科创/已封死不参评；盘中封死涨停的保留在榜但停评分，未涨停的持续评分）</h2>
-  <table>
-    <colgroup>
-      <col style="width:120px"><col style="width:52px"><col style="width:70px"><col style="width:64px"><col style="width:52px"><col style="width:46px"><col style="width:110px"><col>
-    </colgroup>
-    <thead><tr><th>标的</th><th>来源</th><th>现价/涨幅</th><th>换手</th><th>评分</th><th>档位</th><th>分时得分线</th><th>特征</th></tr></thead>
-    <tbody id="rows"><tr><td colspan="8" class="empty">等待首轮扫描…</td></tr></tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h2>评分口径（基础100 + 量价配合奖励≤20，封顶100）</h2>
-  <div class="detail">
-    高开10 + 洗盘深度与量能20 + 关键防守（不破前低，一票否决）20 + V型收复竞价价20 + 低点抬高15 + 量结构15。<br>
-    量价配合奖励（量化拉升指纹）：放量脉冲5 + 脉冲递升5 + 脉冲后守稳5 + 近20根量价同步5；奖励≥15 贴"量化攻击结构"标签。<br>
-    否决项（对总分一并封顶）：破前低>3%封顶40 / 翻绿封顶50 / 洗盘后创新低封顶45 / 收复后不足8根封顶75。强势≥80，关注≥60。
+  <div class="card">
+    <h2>系统说明 · 各模块运行时间轴</h2>
+    <div class="detail" style="line-height:2">
+      <b>9:05-9:18</b> 自动拉起竞价桥（mootdx 盘前撮合价）→ <b>9:15-9:25</b> 竞价轮询 → <b>9:25</b> 首轮扫描开始 + 抢筹快照抓取 → <b>9:30-9:40</b> 早盘直取高频扫描（每35秒，抓直拉起步票）→ <b>9:30-15:05</b> 每2~5分钟滚动评分/报警/买点 → <b>14:45-14:57</b> 出主板首板接力名单 → <b>15:05-16:30</b> 自动复盘+模型权重迭代（报告见"今日复盘报告"按钮）。<br>
+      日志位置：logs/service7.log（主）· crash.log（异常保命）· logs/jj_bridge.log（竞价桥）。重启用上方按钮或手动 detached 拉起 node server.js。
+    </div>
   </div>
 </div>
 
 <script>
+// ---------- Tab 切换 ----------
+let currentTab = (localStorage.getItem('radarTab') || 'attack');
+function switchTab(t) {
+  currentTab = t;
+  localStorage.setItem('radarTab', t);
+  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + t));
+  document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+}
+
 function spark(series, strong) {
   if (!series || series.length < 2) return '';
   const w = 100, h = 26;
@@ -218,6 +302,19 @@ async function load() {
     document.getElementById('meta').textContent =
       `交易日 ${d.day} · 第 ${d.round} 轮 · 最后扫描 ${new Date(d.ts).toLocaleTimeString('zh-CN', {hour12:false})} · ${d.running ? '扫描中…' : (cd !== null ? `下一轮约 ${Math.floor(cd/60)} 分 ${cd%60} 秒后` : '待启动')} · 扫描间隔 2~5 分钟随机`;
 
+    // ---- Tab 角标 ----
+    const bPre = document.getElementById('tabBadgePre');
+    if (d.jjPre && d.jjPre.rows && d.jjPre.rows.length) { bPre.textContent = '✓'; bPre.className = 'tab-badge gold'; }
+    else { bPre.textContent = '·'; bPre.className = 'tab-badge dim'; }
+    const bAtk = document.getElementById('tabBadgeAttack');
+    bAtk.textContent = d.alerts.length;
+    bAtk.className = d.alerts.length ? 'tab-badge' : 'tab-badge dim';
+    const bBuy = document.getElementById('tabBadgeBuy');
+    const nDipHit = (d.dip || []).filter(x => x.status === 'hit').length;
+    const nBuy = (d.buySignals || []).length + nDipHit;
+    bBuy.textContent = nBuy || ((d.buySignals || []).length ? 0 : (d.dip || []).filter(x => x.status === 'near').length ? '~' : '0');
+    bBuy.className = nBuy ? 'tab-badge ok' : 'tab-badge dim';
+
     const al = document.getElementById('alerts');
     al.innerHTML = d.alerts.length ? d.alerts.map(a =>
       `<div class="alert-item"><b>${a.t}</b> <span class="badge ${a.level==='强势'?'lv-strong':'lv-watch'}">${a.level} ${a.score}</span> ` +
@@ -253,6 +350,25 @@ async function load() {
         `模型 v${d.model.version} · 样本${d.model.samples} · 报警阈值${Math.round((d.model.alertThreshold || 0.5) * 100)}%${d.model.reviewDone ? ' · 已复盘' : ''}`;
     }
 
+    // ---- 早盘直取（9:30-9:40 高频扫描，江天化学漏报驱动）----
+    const mdEl = document.getElementById('mdirect');
+    if (mdEl) {
+      if (d.mdSignals && d.mdSignals.length) {
+        mdEl.innerHTML = d.mdSignals.map(s =>
+          `<div class="alert-item" style="border-left-color:#eb2f96">` +
+          `<b>${s.t}</b> <b>${s.name}</b> <span class="muted">${s.code.slice(2)}</span> ` +
+          `<span class="sig" style="background:#fff0f6;color:#c41d7f">早盘直取买点</span> ` +
+          `@ <b class="up">${s.price.toFixed(2)}</b>（+${s.pct}%）` +
+          ` <span class="muted">来源 ${s.src} · ${s.bars}根线/${s.rising}连涨确认</span></div>`).join('');
+      } else {
+        const msg = d.mdStatus === 'active' ? '🔄 高频扫描中（每35秒一趟）…'
+          : d.mdStatus === 'pre' ? '⏳ 9:30 开始高频扫描（东财涨幅榜+抢筹榜双网，抓直拉起步票）'
+          : d.mdStatus === 'post' ? '✅ 窗口已结束（9:30-9:40），今日无直取买点'
+          : '非交易日不扫描';
+        mdEl.innerHTML = `<div class="empty">${msg}</div>`;
+      }
+    }
+
     // ---- 买点信号（两阶段·延续确认门）----
     const bs = document.getElementById('buySignals');
     if (d.buySignals && d.buySignals.length) {
@@ -285,8 +401,82 @@ async function load() {
       wt.innerHTML = '';
     }
 
+    // 低吸买点监听（9月第一周候选）
+    const dipEl = document.getElementById('dip');
+    if (d.dip && d.dip.length) {
+      const stStyle = {
+        hit:       'background:#ffecec;color:#c2362f;font-weight:600',
+        near:      'background:#fffbe6;color:#d48806;font-weight:600',
+        waiting:   'background:#f5f5f2;color:#6a6a66',
+        weak:      'background:#fff7e6;color:#ad6800',
+        invalid:   'background:#f0f0ee;color:#9a9990',
+        nodata:    'background:#f0f0ee;color:#9a9990'
+      };
+      const stText = {
+        hit: '已到买区', near: '接近买区', waiting: '等回踩',
+        weak: '弱势(跌穿买区)', invalid: '破位失效', nodata: '无数据'
+      };
+      const rowsDip = d.dip.map(x =>
+        `<tr${x.status === 'hit' ? ' style="background:#fff8f8"' : ''}>` +
+        `<td><b>${x.name}</b><br><span class="muted">${x.code.slice(2)} · ${x.group}</span></td>` +
+        `<td><span class="muted">${x.role}</span></td>` +
+        `<td class="${x.pct >= 0 ? 'up' : 'down'}">${x.price !== null ? x.price.toFixed(2) : '-'}<br>${x.pct >= 0 ? '+' : ''}${x.pct}%</td>` +
+        `<td>${x.buyLow}~${x.buyHigh}<br><span class="muted">失效 ${x.stop}</span></td>` +
+        `<td><span class="sig" style="${stStyle[x.status] || ''}">${stText[x.status] || x.status}</span></td>` +
+        `<td class="detail">${x.action}<br><span class="muted">日内位置 ${x.closePos !== undefined ? x.closePos + '%' : '-'} | ${x.note}</span></td>` +
+        `</tr>`).join('');
+      dipEl.innerHTML = `
+        <table>
+          <colgroup><col style="width:100px"><col style="width:105px"><col style="width:70px"><col style="width:90px"><col style="width:82px"><col></colgroup>
+          <thead><tr><th>标的</th><th>角色</th><th>现价</th><th>买区</th><th>状态</th><th>动作 / 备注</th></tr></thead>
+          <tbody>${rowsDip}</tbody>
+        </table>`;
+    } else {
+      dipEl.innerHTML = '<div class="empty">等待首轮扫描（交易时段自动刷新）…</div>';
+    }
+
+    // ---- 推荐跟踪（推荐价 vs 现价 · 9/4）----
+    const tkEl = document.getElementById('track');
+    if (tkEl) {
+      const tk = d.track || [];
+      if (tk.length) {
+        const tkTypeStyle = {
+          '早盘直取': 'background:#fff0f6;color:#c41d7f',
+          '强势报警': 'background:#f0f5ff;color:#2f54eb',
+          '直取买点': 'background:#f6ffed;color:#389e0d',
+          '买点确认': 'background:#f6ffed;color:#389e0d',
+          '低吸买区': 'background:#fffbe6;color:#d48806'
+        };
+        const rowsTk = tk.map(r => {
+          const chg = r.chgPct;
+          const chgCls = chg === null ? 'flat' : chg >= 0 ? 'up' : 'down';
+          const chgTxt = chg === null ? '-' : (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+          return `<tr>` +
+            `<td class="muted">${r.triggerT}</td>` +
+            `<td><span class="sig" style="${tkTypeStyle[r.type] || ''}">${r.type}</span></td>` +
+            `<td><b>${r.name}</b><br><span class="muted">${(r.code || '').slice(2)}</span></td>` +
+            `<td class="up">${r.triggerPrice !== null ? r.triggerPrice.toFixed(2) : '-'}</td>` +
+            `<td>${r.lastPrice !== null ? '<b>' + r.lastPrice.toFixed(2) + '</b><br><span class="muted">' + (r.lastT || '') + '</span>' : '<span class="muted">待刷新</span>'}</td>` +
+            `<td class="${chgCls}" style="font-weight:600">${chgTxt}</td>` +
+            `<td class="muted">${r.note || '-'}</td></tr>`;
+        }).join('');
+        tkEl.innerHTML = `<table>
+          <colgroup><col style="width:64px"><col style="width:82px"><col style="width:104px"><col style="width:66px"><col style="width:78px"><col style="width:70px"><col></colgroup>
+          <thead><tr><th>触发</th><th>类型</th><th>标的</th><th>推荐价</th><th>现价</th><th>chg%</th><th>备注</th></tr></thead>
+          <tbody>${rowsTk}</tbody>
+        </table>
+        <div class="muted" style="margin-top:6px">chg% = 现价 / 推荐价 − 1，盘中每 45 秒刷新（落盘 samples/rec_track_${d.day}.json，供收盘复盘核验信号质量）</div>`;
+      } else {
+        tkEl.innerHTML = '<div class="empty">暂无推荐记录——今日报警/买点/低吸触发后会逐条列出，并持续跟踪现价对比</div>';
+      }
+    }
+
     // 盘前抢筹榜（mootdx 竞价桥）
     const jpre = document.getElementById('jjpre');
+    const now2 = new Date();
+    const hm2 = now2.getHours() * 100 + now2.getMinutes();
+    const wd2 = now2.getDay();
+    const isTradingDay = wd2 >= 1 && wd2 <= 5;
     if (d.jjPre && d.jjPre.rows && d.jjPre.rows.length) {
       const rowsP = d.jjPre.rows.map(h =>
         `<tr><td><b>${h.name}</b><br><span class="muted">${h.code.slice(2)}</span></td>` +
@@ -296,14 +486,57 @@ async function load() {
         `<td>${(h.matchVol / 10000).toFixed(1)}万手</td>` +
         `<td><b>${h.strength}</b></td></tr>`).join('');
       jpre.innerHTML = `
-        <div class="muted" style="margin-bottom:6px">${d.jjPre.src} · 产出 ${d.jjPre.genT} · 候选${d.jjPre.n}只（按强度分降序，趋势=9:20-9:25不可撤单段撮合价走势）</div>
+        <div class="muted" style="margin-bottom:6px">✅ 已产出 · ${d.jjPre.src} · 生成于 ${d.jjPre.genT} · 共${d.jjPre.n}只 · 按强度分降序（趋势=9:20-9:25不可撤单段撮合价走势）</div>
         <table>
           <colgroup><col style="width:110px"><col style="width:64px"><col style="width:70px"><col style="width:80px"><col style="width:76px"><col style="width:56px"></colgroup>
-          <thead><tr><th>标的</th><th>竞价高开</th><th>撮合价</th><th>9:20后趋势</th><th>匹配量</th><th>强度</th></tr></thead>
+          <thead><tr><th>标的</th><th>真实高开</th><th>竞价撮合</th><th>9:20后趋势</th><th>匹配量</th><th>强度</th></tr></thead>
           <tbody>${rowsP}</tbody>
         </table>`;
+    } else if (d.jjPre && d.jjPre.n === 0) {
+      jpre.innerHTML = '<div class="empty">⚠️ 竞价桥跑了但采集到 0 只——检查候选集/时间窗（见 logs/jj_bridge.log）</div>';
+    } else if (!isTradingDay) {
+      jpre.innerHTML = '<div class="empty">周末/节假日无竞价数据，交易日 9:25 后出榜</div>';
+    } else if (hm2 < 912) {
+      jpre.innerHTML = `<div class="empty">⏳ 竞价桥将在 9:12 自动拉起（现在 ${now2.toTimeString().slice(0,5)}），9:25 后出榜</div>`;
+    } else if (hm2 < 926) {
+      jpre.innerHTML = '<div class="empty">🔄 竞价桥采集中（9:15-9:25 轮询撮合价），9:25:30 结算，9:26+ 刷新本页出榜</div>';
+    } else if (hm2 < 932) {
+      jpre.innerHTML = '<div class="empty">🔄 采集已结束，等待 9:31 真实开盘价结算…刷新本页查看</div>';
     } else {
-      jpre.innerHTML = '<div class="empty">今日盘前数据尚未生成（竞价桥 9:12 自动拉起，9:25 后出榜）</div>';
+      jpre.innerHTML = '<div class="empty">❌ 今日竞价桥未产出——若 9:12-9:18 服务不在运行则不会拉起；查 logs/jj_bridge.log 与 logs/service7.log</div>';
+    }
+
+    // 主板首板接力名单（14:45 出，落盘样本由 relay_verify.py T+2 结算）
+    const relEl = document.getElementById('relay');
+    const now3 = new Date();
+    const hm3 = now3.getHours() * 100 + now3.getMinutes();
+    if (d.relay && d.relay.rows && d.relay.rows.length) {
+      const regColor = d.relay.regime === '极热' ? '#cf1322' : d.relay.regime === '热' ? '#d46b08' : '#8c8c8c';
+      const rowsR = d.relay.rows.map((x, i) =>
+        `<tr><td>${i + 1}</td><td><b>${x.name}</b><br><span class="muted">${x.code.slice(2)}</span></td>` +
+        `<td>${x.price}</td>` +
+        `<td>${x.hybk || '-'}</td>` +
+        `<td>${x.prior10 >= 0 ? '+' : ''}${x.prior10}%</td>` +
+        `<td>${(x.fundWan / 10000).toFixed(2)}亿</td>` +
+        `<td>${x.ltszYi}亿</td></tr>`).join('');
+      relEl.innerHTML = `
+        <div class="muted" style="margin-bottom:6px">
+          生成于 ${d.relay.t} · 市况 <b style="color:${regColor}">${d.relay.regime}</b>（全市场涨停 ${d.relay.ztCount} 家）· ${d.relay.note}
+          ${d.relay.dropped ? `<br>另有 ${d.relay.dropped} 只满足规则未展示` : ''}
+        </div>
+        <table>
+          <colgroup><col style="width:30px"><col style="width:110px"><col style="width:60px"><col style="width:90px"><col style="width:70px"><col style="width:70px"><col style="width:60px"></colgroup>
+          <thead><tr><th>#</th><th>标的</th><th>价格</th><th>行业</th><th>前10日</th><th>封单</th><th>流通</th></tr></thead>
+          <tbody>${rowsR}</tbody>
+        </table>`;
+    } else if (d.relay && d.relay.n === 0) {
+      relEl.innerHTML = `<div class="empty">⚠️ 14:45 跑了但全栈过滤后 0 只（市况${d.relay.regime || ''}，涨停${d.relay.ztCount}家）——冷日属正常，不出手</div>`;
+    } else if (hm3 >= 1445 && hm3 <= 1457) {
+      relEl.innerHTML = '<div class="empty">🔄 正在生成名单（拉涨停池+前10日涨幅过滤）…</div>';
+    } else if (hm3 < 1445) {
+      relEl.innerHTML = `<div class="empty">⏳ 每日 14:45-14:57 自动生成（现在 ${now3.toTimeString().slice(0,5)}）</div>`;
+    } else {
+      relEl.innerHTML = '<div class="empty">❌ 14:45 未出名单——服务该时段未运行或涨停池为空；查 logs/service7.log</div>';
     }
 
     // 竞价抢筹快照
@@ -358,6 +591,7 @@ async function load() {
     }).join('') : '<tr><td colspan="8" class="empty">候选池为空（非交易时段或无符合条件标的）</td></tr>';
   } catch (e) { /* 服务未起 */ }
 }
+switchTab(currentTab);
 load();
 setInterval(load, 10000);
 </script>

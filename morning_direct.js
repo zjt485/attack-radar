@@ -25,6 +25,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const notify = require('./notify');   // 桌面提醒（9/4：早盘直取触发即弹窗+提示音）
+const track = require('./track');     // 推荐跟踪（9/4：直取信号记入推荐价对比表）
 
 const DIR = __dirname;
 
@@ -230,6 +231,8 @@ async function tick(state, opts = {}) {
       console.log(`[早盘直取] ${h.q.name}(${h.code}) +${h.pct.toFixed(2)}% @${h.q.price} ← ${h.meta.src} ${h.bars.length}根/${h.chk.rising}连涨`);
       // 9/4：触发即弹桌面气泡+提示音（此前只写看板，用户不看板就漏提醒）
       notify.send({ type: '早盘直取', code: h.code, name: h.q.name, text: `+${h.pct.toFixed(2)}% @${h.q.price} ${h.meta.src} 开盘+${h.chk.openPct}% ${h.bars.length}根/${h.chk.rising}连涨` });
+      // 9/4：记入推荐跟踪表（推荐价 vs 现价对比；现价由 server 刷新循环每 45s 补齐）
+      track.record({ type: '早盘直取', code: h.code, name: h.q.name, price: h.q.price, t, note: `开盘+${h.chk.openPct}% ${h.bars.length}根/${h.chk.rising}连涨 ${h.meta.src}` });
     }
     if (!opts.dryRun && hits.length) saveSignals(day, state.mdSignals);
     return { n: hits.length, candN: cand.size };
