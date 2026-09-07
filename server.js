@@ -609,9 +609,17 @@ async function scan(force) {
           price: q.price, src: meta.src, lbc: meta.lbc
         });
         state.log.push({ ts: Date.now(), code, name: q.name, level: name_, score: r.score, prob: pred.prob, tags: r.tags });
-        // 9/4：报警即弹窗+提示音（此前只写看板；用户盘中不盯板就漏了易点天下这类）
-        notify.send({ type: '强势报警', code, name: q.name, text: `score ${r.score} +${r.d.pct}% @${q.price} ${r.tags.slice(0, 3).join('/')} ${meta.src}` });
-        track.record({ type: '强势报警', code, name: q.name, price: q.price, note: `score ${r.score} ${r.tags.slice(0, 3).join('/')} ${meta.src}` });
+        // ---- 9/7 复盘驱动的通知分级（68条推荐实测反向优化）----
+        // 强势报警≠买点。今日实测：上午报警<5cm 19条 胜率79%/0亏损（黄金区）；
+        //   下午报警23条 均值+0.05%/胜率22%（噪音）；报警≥5cm 违反用户"<5cm才买"纪律。
+        // 弹窗只给黄金区（上午+涨幅<5cm）；其余静默——但 track.record 永远执行，
+        //   复盘数据完整不丢，弹窗从今日64次砍到约27次（全是可执行信号）。
+        const _hm = new Date().getHours() * 100 + new Date().getMinutes();
+        const _golden = _hm < 1130 && r.d.pct < 5;
+        if (_golden) {
+          notify.send({ type: '强势报警', code, name: q.name, text: `score ${r.score} +${r.d.pct}% @${q.price} ${r.tags.slice(0, 3).join('/')} ${meta.src}` });
+        }
+        track.record({ type: '强势报警', code, name: q.name, price: q.price, note: `score ${r.score} ${r.tags.slice(0, 3).join('/')} ${meta.src}` + (_golden ? ' ★黄金区' : (_hm >= 1130 ? ' [下午静默]' : ' [≥5cm静默]')) });
         // 两阶段买点：报警后先过"介入资格审查"（只做20cm + 报警<5cm，8/28用户拍板）
         if (!state.watches[code]) {
           const elig = bp.eligibleWatch(code, q.price, q.prevClose);
