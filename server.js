@@ -21,6 +21,7 @@ const relay = require('./relay');   // 主板首板接力模块（8/31，复刻"
 const md = require('./morning_direct'); // 早盘直取（9/1，江天化学漏报驱动：9:30-9:40 直拉窗口高频扫描）
 const notify = require('./notify');     // 桌面提醒（9/4：报警/买点触发即弹窗，不再只写看板）
 const track = require('./track');       // 推荐跟踪（9/4：推荐价 vs 现价对比，落盘 samples/rec_track_*.json）
+const ztNext = require('./zt_next');    // 涨停榜次日关注（9/7：收盘出S/A/B名单，次日9:31开盘核对介入区）
 
 // 扫描间隔：每轮结束后随机 2~5 分钟（随机化本身也是防限流手段）
 function nextInterval() { return (2 + Math.random() * 3) * 60000; }
@@ -44,7 +45,11 @@ const state = {
   // ---- 早盘直取（9/1，江天化学漏报驱动）----
   // mdSignals: 已触发的早盘直取买点时间线；mdCodes: 已报过的票（每只每日一条）
   mdSignals: [],
-  mdCodes: new Set()
+  mdCodes: new Set(),
+  // ---- 涨停榜次日关注（9/7，617样本回测驱动）----
+  // ztNextList: 收盘后的次日关注名单；ztNextMorning: 次日9:31开盘核对结果
+  ztNextList: null,
+  ztNextMorning: null
 };
 
 function todayStr() {
@@ -343,6 +348,10 @@ function restoreSamples(day) {
   }
   state.alerts.sort((a, b) => (b.t || '').localeCompare(a.t || ''));
   state.relay = relay.loadRelay(day);   // 当日接力快照恢复（盘后重启也能看到名单）
+  // 涨停榜次日关注恢复（9/7）：当日名单 + 早盘核对结果都从落盘读回；
+  // 当日还没有名单（次日早盘）→ 回退最近交易日的名单供核对与看板展示
+  state.ztNextList = ztNext.loadZTNext(day) || ztNext.loadLatestBefore(day);
+  try { state.ztNextMorning = JSON.parse(fs.readFileSync(path.join(DIR, 'samples', `zt_next_morning_${day}.json`), 'utf-8')); } catch (_) { state.ztNextMorning = null; }
   // 早盘直取买点恢复（9:30-9:40 窗口产物，重启不丢上午的直取信号）
   state.mdSignals = md.loadSignals(day);
   state.mdCodes = new Set(state.mdSignals.map(s => s.code));
@@ -365,6 +374,10 @@ async function scan(force) {
     state.watches = {}; state.buySignals = [];   // 买点观察态跨日重置
     state.dip = []; state.dipAlerted = {};       // 低吸监听跨日重置（每天重新报一次）
     state.relay = relay.loadRelay(day);          // 接力快照跨日重置（有当日落盘就恢复）
+    // 涨停榜次日关注跨日重置：当日名单（收盘后才有）→ 没有就回退最近交易日的名单（次日早盘核对用）
+    state.ztNextList = ztNext.loadZTNext(day) || ztNext.loadLatestBefore(day);
+    state.ztNextMorning = null;
+    try { state.ztNextMorning = JSON.parse(fs.readFileSync(path.join(DIR, 'samples', `zt_next_morning_${day}.json`), 'utf-8')); } catch (_) {}
     state.mdSignals = md.loadSignals(day);       // 早盘直取跨日重置（有当日落盘就恢复）
     state.mdCodes = new Set(state.mdSignals.map(s => s.code));
     track.load(day);   // 推荐跟踪跨日重置（读当日落盘）
@@ -715,6 +728,8 @@ function snapshot() {
     jjPre: getJJPre() || null,
     topList: state.topList || [],
     relay: state.relay || relay.loadRelay(todayStr()) || null,   // 主板首板接力（14:45出）
+    ztNextList: state.ztNextList || null,        // 涨停榜次日关注名单（收盘后出，S/A/B级）
+    ztNextMorning: state.ztNextMorning || null,  // 次日早盘核对结果（9:31后，介入区/高开/弱开）
     buySignals: state.buySignals || [],
     mdSignals: state.mdSignals || [],   // 早盘直取买点时间线（9:30-9:40）
     mdStatus: md.windowStatus(),        // off|pre|active|post（看板提示用）
@@ -874,6 +889,20 @@ async function loop() {
     if (wd >= 1 && wd <= 5 && hm >= 1505 && hm <= 1630 && !state.reviewDone) {
       await doReviewAndIterate();
     }
+    // 涨停榜次日关注名单：收盘后构建（15:05-16:30，当日落盘已存在则跳过，幂等）
+    if (wd >= 1 && wd <= 5 && hm >= 1505 && hm <= 1630 && !(state.ztNextList && state.ztNextList.day === todayStr())) {
+      try {
+        const z = await ztNext.buildZTNext(todayStr());
+        if (z && z.n > 0) {
+          ztNext.saveZTNext(z);
+          state.ztNextList = z;
+          console.log(`[zt-next] ${z.day} 名单构建完成：涨停${z.tc}家(${z.regime}) → 入选${z.n}只 S${z.rows.filter(r => r.tier === 'S').length}/A${z.rows.filter(r => r.tier === 'A').length}/B${z.rows.filter(r => r.tier === 'B').length}`);
+        } else if (z) {
+          console.log(`[zt-next] ${z.day} 构建跳过：${z.note || '无符合条件标的'}`);
+          state.ztNextList = z;   // 空名单也置位，避免每轮重拉
+        }
+      } catch (e) { console.error('[zt-next build]', e.message); }
+    }
     // 非交易时段：零请求，直接睡到下一个交易时段开始（跨午休/跨周末都精确计算）
     let wait = Math.max(30000, msToNextSession());
     // 盘前段别睡过竞价桥拉起窗口（8/31教训：8:28启动的进程 hm=828<850 不满足早醒条件，
@@ -901,6 +930,8 @@ setTimeout(loop, 3000);
   const st = md.windowStatus();
   if (st === 'active') {
     try { await md.tick(state); } catch (e) { console.error('[morning_direct]', e.message); }
+    // 涨停榜次日核对：9:31后对昨日名单核开盘价，介入区弹通知（内部幂等，当日只跑一次）
+    try { await ztNext.morningCheck(state); } catch (e) { console.error('[zt-next morning]', e.message); }
     setTimeout(mdLoop, 35000);
     return;
   }
