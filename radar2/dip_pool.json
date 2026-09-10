@@ -1,0 +1,37 @@
+[
+  {
+    "code": "sh600183", "name": "生益科技", "group": "PCB中游", "role": "首选",
+    "note": "H1净利+130%·M9认证批量供货·板块业绩最硬（买区为8/31口径，需按最新盘面重估）",
+    "buyLow": 148.0, "buyHigh": 151.0, "stopLoss": 145.5
+  },
+  {
+    "code": "sh601208", "name": "东材科技", "group": "PCB中游", "role": "备选",
+    "note": "M9级树脂国内唯一·但PE127+高管减持，只接深回踩",
+    "buyLow": 44.5, "buyHigh": 47.5, "stopLoss": 42.9
+  },
+  {
+    "code": "sz000823", "name": "超声电子", "group": "PCB中游", "role": "观察",
+    "note": "仅观察板块温度，不主动买",
+    "buyLow": 14.4, "buyHigh": 14.8, "stopLoss": 14.13
+  },
+  {
+    "code": "sh601899", "name": "紫金矿业", "group": "有色铜", "role": "中军",
+    "note": "铜金双驱动·10日主力+33亿",
+    "buyLow": 32.5, "buyHigh": 33.8, "stopLoss": 31.9
+  },
+  {
+    "code": "sh600362", "name": "江西铜业", "group": "有色铜", "role": "备选(与紫金二选一)",
+    "note": "5日主力+8.6亿·H1净利+107%",
+    "buyLow": 45.5, "buyHigh": 47.5, "stopLoss": 44.2
+  },
+  {
+    "code": "sz000878", "name": "云南铜业", "group": "有色铜", "role": "短线弹性",
+    "note": "动能强但波动大",
+    "buyLow": 16.6, "buyHigh": 17.2, "stopLoss": 16.2
+  },
+  {
+    "code": "sh600489", "name": "中金黄金", "group": "黄金", "role": "接回候选",
+    "note": "黄金股资金面最稳(20日主力+6.5亿)·等情绪杀",
+    "buyLow": 24.8, "buyHigh": 25.9, "stopLoss": 24.0
+  }
+]

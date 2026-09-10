@@ -21,5 +21,10 @@ bt_*.json
 .DS_Store
 Thumbs.db
 
+# radar2（v2 重构）运行时产物
+radar2/signals/
+radar2/crash.log
+radar2/*.log
+
 # npm（如需在本地装依赖调试）
 node_modules/

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="YmNG4xMevmJM65ZBi3emov">
+<head data-page-node-id="4w53VpLdJodWNGMWQJNPK5">
+<meta charset="UTF-8" data-page-node-id="sucnG4OGkiqlsoaB4fZzI9">
+<title>进攻雷达 v2（重构版）</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--txt:#e6edf3;--dim:#8b949e;--red:#f85149;--green:#3fb950;--amber:#d29922;--blue:#58a6ff;--purple:#bc8cff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:13px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;padding:12px}
+h1{font-size:17px;margin-bottom:2px}
+.sub{color:var(--dim);font-size:12px;margin-bottom:10px}
+.banner{background:#3d1d1d;border:1px solid var(--red);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px}
+.banner b{color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px}
+.panel h2{font-size:13px;color:var(--blue);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.badge{font-size:11px;padding:1px 8px;border-radius:10px;background:#21262d;color:var(--dim)}
+.badge.live{background:#1d3d2a;color:var(--green)}
+.badge.paper{background:#3d2d1d;color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--dim);font-weight:normal;text-align:left;padding:3px 6px;border-bottom:1px solid var(--border)}
+td{padding:3px 6px;border-bottom:1px solid #21262d}
+.up{color:var(--red)}.down{color:var(--green)}
+.tag{display:inline-block;font-size:10px;padding:0 6px;border-radius:8px;background:#21262d;color:var(--dim);margin-right:3px}
+.tag.veto{background:#3d1d1d;color:var(--red)}
+.tag.best{background:#1d3d2a;color:var(--green)}
+.log{font-size:11px;color:var(--dim);max-height:180px;overflow-y:auto}
+.log div{padding:1px 0;border-bottom:1px dashed #21262d}
+.stat{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.stat .item{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:6px 10px;min-width:90px}
+.stat .item .k{color:var(--dim);font-size:11px}
+.stat .item .v{font-size:16px;font-weight:600}
+.regime-hot{color:var(--red)}.regime-cold{color:var(--blue)}
+#err{color:var(--red);font-size:12px;margin-bottom:8px;display:none}
+</style>
+</head>
+<body data-page-node-id="qyajCoou7cLo7BahQ5OKOx">
+<h1 data-page-node-id="vq17gaA6BPE50zQYwD3I8B">进攻雷达 v2 <span style="font-size:12px;color:var(--dim)" data-page-node-id="xYQ53JR717soWFzyqoEtxb">重构版 · 端口8733 · 与旧版8732并存A/B</span></h1>
+<div class="sub" id="meta" data-page-node-id="wG7cSm2OYz0q5Wg8ocE0MY">加载中…</div>
+<div class="banner" data-page-node-id="x568UIftWQoJo0uUrc4c6q">★ <b data-page-node-id="d3wYSYWEj8uj4VqOZ1CprR">纸面模式声明</b>：审计实证 158 条真实报警（剔除8/27种子日）均入场→收盘 <b data-page-node-id="ET4xWrjqAZReA3sdJ4C3dP">-0.36%</b>，日内进攻链路无正期望。
+v2 默认 <b data-page-node-id="O8MCkQe4RTJWwHCb45jKKq">paper</b> 模式只记录不喊买；relay（隔日接力，纪律均收+1.88%）与 dip（低吸，+0.71%）是仅有的两个验证正期望模块。</div>
+<div id="err" data-page-node-id="5k5cGR8WS0T8uHPtVcqEnu"></div>
+
+<div class="stat" id="stats" data-page-node-id="UY72iPvcC9Q91HY8wsrRuA"></div>
+
+<div class="grid" data-page-node-id="GTngljzmBDKSQixvel1MA5">
+  <div class="panel" style="grid-column:1/-1" data-page-node-id="eLiDdwy1Y9NQzB3TJ2dh5F">
+    <h2 data-page-node-id="UDDRmGUST1iNYXMXDDvPb8">今日触发信号（冻结快照 · 入场价基准）<span class="badge" id="modeBadge" data-page-node-id="oyOPSrpvGjgwGJioVHjl8N"></span></h2>
+    <table id="sigTable" data-page-node-id="XCiSTPH3KWnmfF15Zbn8VW"><thead data-page-node-id="EPuBZvWRjgnG0ynpx1HcGx"><tr data-page-node-id="PKxFNeukwQP0tyWpz6eR5z"><th data-page-node-id="aP02dh8yeNwO41GzptDxrh">时间</th><th data-page-node-id="wGvOuTf2WHcjIye4RVGIGQ">代码</th><th data-page-node-id="BVYRCagXjuMA7XW70umDF2">名称</th><th data-page-node-id="ihXAyjCRVI8dzGfEVIpxDx">入场价</th><th data-page-node-id="mbISoFL7Xx1n0lj5g8OG6N">入场涨幅</th><th data-page-node-id="65wxBOWhKUdaFAMibtEhu8">强度分</th><th data-page-node-id="NjjVVP1GKJqcW7CPoF4jyQ">来源</th><th data-page-node-id="WURrAwYCxRWyyddIZaTmtC">模式</th><th data-page-node-id="ensivpohGGI0tVqdFb5hHU">状态</th><th data-page-node-id="CJnNaib9qrp9vvd1IfJxCQ">收益</th></tr></thead><tbody data-page-node-id="gC5ooP8CJh9o7qVXvPIYn3"></tbody></table>
+  </div>
+
+  <div class="panel" data-page-node-id="RUaWFLdDgQ0C1fx1LRUtRS">
+    <h2 data-page-node-id="3zrXgCkaSGk6RBKrSG7YD7">候选池 Top（强度分仅排序，不作门槛）</h2>
+    <table id="candTable" data-page-node-id="AUulyeLgZSYyWcjfGFF6fU"><thead data-page-node-id="idacyhb3HSnIW17VDWrXMK"><tr data-page-node-id="CIrW5pSfwfSZAYJVA8PA0v"><th data-page-node-id="2enT4vXleIt9D96uCi4AUI">代码</th><th data-page-node-id="dUaYFSYuGT8ubYd2Xaxzag">名称</th><th data-page-node-id="XxRqesQWGJBtJzG4cWO9Ee">现价</th><th data-page-node-id="urGpiP7x548o4v0AAYrMRi">涨幅</th><th data-page-node-id="qPwg65L9OuouXCYsWiDUXw">强度</th><th data-page-node-id="M65kHnsF65E3GmvMuCzeMt">来源</th><th data-page-node-id="UQCmqYUHWBnptHEwCmQCff">标签</th></tr></thead><tbody data-page-node-id="EhU4vyIDyCJzBmJMHDmYeb"></tbody></table>
+  </div>
+
+  <div class="panel" data-page-node-id="AxE6D8ErVy0TkRwRjBU6Zw">
+    <h2 data-page-node-id="3io0jFN2AH7Bliu0rWmiVR">隔日接力名单（唯一验证正期望）<span class="badge" id="regimeBadge" data-page-node-id="AOl7rg3338CKAsqaEyqyVA"></span></h2>
+    <table id="relayTable" data-page-node-id="Aztg1MHXDlM5DOuaIoqCg7"><thead data-page-node-id="Oh2ovmmKqsIjyhT052oZKG"><tr data-page-node-id="BiEU6hNBz0xpkMXCId7m1J"><th data-page-node-id="IQciLirgY35SWFKYFI4mx9">代码</th><th data-page-node-id="GPLM9vRv53OuMQi3DHGSht">名称</th><th data-page-node-id="dVi6XDOR0bWHFN9MRp09e4">价</th><th data-page-node-id="DAaSO5m0JFX42dUtttOV2e">封单(万)</th><th data-page-node-id="pXAbWVYf07pyhaktNyE2JD">前10日</th><th data-page-node-id="4ZM5dLF753LGCrPWKZqkCY">封单/流通</th><th data-page-node-id="CJRHjySnYfCUUoXx2fAXAV">可买</th><th data-page-node-id="eFfJn5T47JdBhTzdj44vFH">标注</th></tr></thead><tbody data-page-node-id="UIquIz8SoTJSjVXNwz4tax"></tbody></table>
+    <div style="margin-top:6px;font-size:11px;color:var(--dim)" data-page-node-id="EABJMEaEQ3crbNt4NQvl0y">出场纪律：次日高开&gt;2%持有看收盘，否则开盘卖。封单/流通≥3%的"强"是封死买不进的纸面收益。</div>
+  </div>
+
+  <div class="panel" data-page-node-id="dWua6OJQ5shZyLCGHIPOKx">
+    <h2 data-page-node-id="ynyKqahHcoVJu2g1MApfl2">低吸监听（用户主观买区 · 收位&gt;70%真买）</h2>
+    <table id="dipTable" data-page-node-id="CTzzPu5V7PxHu1Mc54tQoi"><thead data-page-node-id="6lbHL5o1GHXaVdIdKTBUr5"><tr data-page-node-id="Bu35AQ5LVOKabF5hRaz9IO"><th data-page-node-id="CBhPoQ10B5uNPw46VfEQUk">名称</th><th data-page-node-id="qiivkCskfXlIJgsHA8A4Gu">现价</th><th data-page-node-id="h4ued97P8ojXSEJJ2sto2b">涨幅</th><th data-page-node-id="FdfdkIEI8Tm9NlWytW2Ts0">买区</th><th data-page-node-id="EBFD39Pyb3XvqBoCFDTloG">收位</th><th data-page-node-id="Zt5FbkNh1tFaxlo98JEWbW">状态</th></tr></thead><tbody data-page-node-id="uktxg6g2wKXHhEWtqWaMNz"></tbody></table>
+  </div>
+
+  <div class="panel" data-page-node-id="KLGnP8CordyFnfLvy1XJIB">
+    <h2 data-page-node-id="Whxzqrl8DZUmcvE9a6AvWa">今日结算（EOD）</h2>
+    <div id="reviewBox" style="font-size:12px;color:var(--dim)" data-page-node-id="mp5UORFAy1xDL6OoizB8Ax">未到结算时间</div>
+  </div>
+
+  <div class="panel" style="grid-column:1/-1" data-page-node-id="jaKLAs63TavOkMVNa7mNDx">
+    <h2 data-page-node-id="FGroVGBolvLTB6d1OuGzXK">运行日志</h2>
+    <div class="log" id="logBox" data-page-node-id="ZPJ8Zhm1fNX11bIiFepIfv"></div>
+  </div>
+</div>
+
+<script>
+function pct(v){if(v==null)return'-';const c=v>0?'up':v<0?'down':'';return `<span class="${c}">${v>0?'+':''}${(+v).toFixed(2)}%</span>`}
+async function refresh(){
+  try{
+    const r=await fetch('/api/data');const d=await r.json();
+    document.getElementById('meta').textContent=`交易日 ${d.day||'-'} · 最近扫描 ${d.lastScan||'未开始'} · 第${d.scanCount||0}轮 · 涨停${d.ztCount||0}家`;
+    const err=document.getElementById('err');
+    if(d.error){err.style.display='block';err.textContent='异常: '+d.error}else err.style.display='none';
+    const mb=document.getElementById('modeBadge');
+    mb.textContent=d.mode==='live'?'LIVE 实盘提醒':'PAPER 纸面跟踪';
+    mb.className='badge '+(d.mode==='live'?'live':'paper');
+    // stats
+    const openPos=(d.positions||[]).filter(p=>!p.exited).length;
+    const exited=(d.positions||[]).filter(p=>p.exited);
+    const avg=exited.length?(exited.reduce((a,p)=>a+(p.exitPct||0),0)/exited.length).toFixed(2):'-';
+    document.getElementById('stats').innerHTML=[
+      ['触发信号',(d.signals||[]).length],['持仓中',openPos],['已出场',exited.length],['今日均收益',avg+'%'],
+      ['候选数',(d.candidates||[]).length],['接力名单',d.relay?(d.relay.list||[]).length:'-']
+    ].map(([k,v])=>`<div class="item"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+    // signals
+    const sigTb=document.querySelector('#sigTable tbody');
+    sigTb.innerHTML=(d.signals||[]).map(s=>{
+      const pos=(d.positions||[]).find(p=>p.code===s.code);
+      const st=pos?pos.exited?`出场(${pos.exitReason})`:`持有中 峰值${pos.peakPct}%`:'-';
+      return `<tr><td>${s.triggerT}</td><td>${s.code}</td><td>${s.name}</td><td>${s.entryPrice}</td><td>${pct(s.entryPct)}</td><td>${s.score}</td><td>${s.src}</td><td>${s.mode}</td><td>${st}</td><td>${pos&&pos.exited?pct(pos.exitPct):'-'}</td></tr>`;
+    }).join('')||'<tr><td colspan="10" style="color:var(--dim)">暂无信号</td></tr>';
+    // candidates
+    document.querySelector('#candTable tbody').innerHTML=(d.candidates||[]).slice(0,20).map(c=>
+      `<tr><td>${c.code}</td><td>${c.name}</td><td>${c.price}</td><td>${pct(c.pct)}</td><td>${c.score}</td><td>${c.src}</td><td>${(c.tags||[]).map(t=>`<span class="tag ${t.startsWith('✗')?'veto':''}">${t}</span>`).join('')}</td></tr>`
+    ).join('')||'<tr><td colspan="7" style="color:var(--dim)">暂无候选</td></tr>';
+    // relay
+    if(d.relay&&d.relay.list){
+      const rg=d.relay.regime||{};
+      document.getElementById('regimeBadge').textContent=`市况${rg.tag||'-'}(${rg.count||0}家) 预期${rg.expect||''}`;
+      document.querySelector('#relayTable tbody').innerHTML=d.relay.list.map(x=>
+        `<tr><td>${x.code}</td><td>${x.name}</td><td>${x.price}</td><td>${Math.round(x.fundWan)}</td><td>${x.prior10Pct!=null?pct(x.prior10Pct):'-'}</td><td>${x.sealRatioPct!=null?x.sealRatioPct+'%':'-'}</td><td>${x.buyable?'<span class="up">可买</span>':'<span style="color:var(--dim)">封死</span>'}</td><td>${x.inBestRange?'<span class="tag best">★最优区</span>':''}${x.note||''}</td></tr>`
+      ).join('');
+    }else{document.getElementById('regimeBadge').textContent='14:45后生成'}
+    // dip
+    document.querySelector('#dipTable tbody').innerHTML=(d.dip||[]).map(x=>{
+      const sc=x.signal?({'buy':'up','near':'','watch':'','below':'down','stop':'down'})[x.signal.type]||'':'';
+      return `<tr><td>${x.name}</td><td>${x.price}</td><td>${pct(x.pct)}</td><td>${x.buyLow}~${x.buyHigh}</td><td>${x.closePos!=null?x.closePos+'%':'-'}</td><td class="${sc}">${x.status}</td></tr>`;
+    }).join('')||'<tr><td colspan="6" style="color:var(--dim)">未配置 dip_pool.json</td></tr>';
+    // review
+    if(d.review){const v=d.review;
+      document.getElementById('reviewBox').innerHTML=`模式 <b>${v.mode}</b> · 信号 ${v.signals} 笔 · 结算 ${v.n} 笔<br>均收益 <b class="${v.avgExitPct>0?'up':'down'}">${v.avgExitPct}%</b> · 胜率 ${v.winPct}% · 止损率 ${v.stopPct}% · 止盈率 ${v.tpPct}%<br><span style="color:var(--dim)">出场分布: ${JSON.stringify(v.byReason)}</span>`;
+    }
+    // log
+    document.getElementById('logBox').innerHTML=(d.logs||[]).slice().reverse().map(l=>`<div>${l}</div>`).join('');
+  }catch(e){document.getElementById('err').style.display='block';document.getElementById('err').textContent='刷新失败: '+e.message}
+}
+refresh();setInterval(refresh,15000);
+</script>
+</body>
+</html>

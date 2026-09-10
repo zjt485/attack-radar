@@ -1,0 +1,1253 @@
+{
+ "generatedAt": "2026-09-10T07:16:24.586Z",
+ "days": [
+  "20260827",
+  "20260828",
+  "20260831",
+  "20260901",
+  "20260902",
+  "20260903",
+  "20260904",
+  "20260907",
+  "20260908",
+  "20260909",
+  "20260910"
+ ],
+ "totalSamples": 1024,
+ "overall": {
+  "label": "全部样本",
+  "n": 1024,
+  "looseHitPct": 55.9,
+  "execWinPct": 61.4,
+  "execEdgePct": 59.5,
+  "execLossPct": 10.1,
+  "closeLimitPct": 22.2,
+  "avgClose": 5.06,
+  "avgMaxGain": 5.07,
+  "avgMaxDD": -1.42
+ },
+ "byScore": [
+  {
+   "label": "score>=90",
+   "n": 23,
+   "looseHitPct": 65.2,
+   "execWinPct": 39.1,
+   "execEdgePct": 52.2,
+   "execLossPct": 30.4,
+   "closeLimitPct": 13,
+   "avgClose": 5.02,
+   "avgMaxGain": 3.11,
+   "avgMaxDD": -2.85
+  },
+  {
+   "label": "score 80-89",
+   "n": 119,
+   "looseHitPct": 67.2,
+   "execWinPct": 45.4,
+   "execEdgePct": 77.3,
+   "execLossPct": 8.4,
+   "closeLimitPct": 16.8,
+   "avgClose": 6.57,
+   "avgMaxGain": 3.72,
+   "avgMaxDD": -1.63
+  },
+  {
+   "label": "score 70-79",
+   "n": 294,
+   "looseHitPct": 56.1,
+   "execWinPct": 63.3,
+   "execEdgePct": 73.1,
+   "execLossPct": 1.4,
+   "closeLimitPct": 21.1,
+   "avgClose": 5.92,
+   "avgMaxGain": 5.32,
+   "avgMaxDD": -0.78
+  },
+  {
+   "label": "score 60-69",
+   "n": 253,
+   "looseHitPct": 64.4,
+   "execWinPct": 78.7,
+   "execEdgePct": 66,
+   "execLossPct": 2.4,
+   "closeLimitPct": 29.2,
+   "avgClose": 5.77,
+   "avgMaxGain": 6.55,
+   "avgMaxDD": -0.51
+  },
+  {
+   "label": "score 50-59",
+   "n": 112,
+   "looseHitPct": 55.4,
+   "execWinPct": 58,
+   "execEdgePct": 63.4,
+   "execLossPct": 6.3,
+   "closeLimitPct": 38.4,
+   "avgClose": 5.2,
+   "avgMaxGain": 4.75,
+   "avgMaxDD": -0.98
+  },
+  {
+   "label": "score<50",
+   "n": 223,
+   "looseHitPct": 39,
+   "execWinPct": 52,
+   "execEdgePct": 23.3,
+   "execLossPct": 30.9,
+   "closeLimitPct": 11.2,
+   "avgClose": 2.27,
+   "avgMaxGain": 4.15,
+   "avgMaxDD": -3.25
+  }
+ ],
+ "byProb": [
+  {
+   "label": "prob>=0.90",
+   "n": 264,
+   "looseHitPct": 95.8,
+   "execWinPct": 81.8,
+   "execEdgePct": 83,
+   "execLossPct": 14,
+   "closeLimitPct": 38.3,
+   "avgClose": 7.54,
+   "avgMaxGain": 7.59,
+   "avgMaxDD": -1.61
+  },
+  {
+   "label": "prob 0.75-0.89",
+   "n": 63,
+   "looseHitPct": 84.1,
+   "execWinPct": 79.4,
+   "execEdgePct": 74.6,
+   "execLossPct": 15.9,
+   "closeLimitPct": 28.6,
+   "avgClose": 6.45,
+   "avgMaxGain": 7.18,
+   "avgMaxDD": -1.78
+  },
+  {
+   "label": "prob 0.50-0.74",
+   "n": 61,
+   "looseHitPct": 78.7,
+   "execWinPct": 72.1,
+   "execEdgePct": 70.5,
+   "execLossPct": 16.4,
+   "closeLimitPct": 29.5,
+   "avgClose": 6.18,
+   "avgMaxGain": 6.53,
+   "avgMaxDD": -1.78
+  },
+  {
+   "label": "prob 0.30-0.49",
+   "n": 52,
+   "looseHitPct": 63.5,
+   "execWinPct": 65.4,
+   "execEdgePct": 65.4,
+   "execLossPct": 5.8,
+   "closeLimitPct": 25,
+   "avgClose": 6.03,
+   "avgMaxGain": 5.31,
+   "avgMaxDD": -1.45
+  },
+  {
+   "label": "prob<0.30",
+   "n": 584,
+   "looseHitPct": 31.7,
+   "execWinPct": 48.8,
+   "execEdgePct": 45.5,
+   "execLossPct": 7.4,
+   "closeLimitPct": 13.2,
+   "avgClose": 3.59,
+   "avgMaxGain": 3.54,
+   "avgMaxDD": -1.25
+  }
+ ],
+ "alerted": {
+  "label": "有报警(alertT存在)",
+  "n": 283,
+  "looseHitPct": 61.1,
+  "execWinPct": 21.6,
+  "execEdgePct": 74.6,
+  "execLossPct": 6,
+  "closeLimitPct": 25.4,
+  "avgClose": 6.31,
+  "avgMaxGain": 1.77,
+  "avgMaxDD": -1.19
+ },
+ "notAlerted": {
+  "label": "无报警",
+  "n": 741,
+  "looseHitPct": 53.8,
+  "execWinPct": 76.7,
+  "execEdgePct": 53.7,
+  "execLossPct": 11.6,
+  "closeLimitPct": 20.9,
+  "avgClose": 4.59,
+  "avgMaxGain": 6.33,
+  "avgMaxDD": -1.51
+ },
+ "featureIC": [
+  {
+   "feature": "lbc",
+   "ic_vs_close": -0.4334,
+   "ic_vs_maxGain": -0.3816,
+   "ic_vs_execEdge": -0.4321
+  },
+  {
+   "feature": "zbc",
+   "ic_vs_close": 0.5193,
+   "ic_vs_maxGain": 0.3799,
+   "ic_vs_execEdge": 0.3719
+  },
+  {
+   "feature": "secHot",
+   "ic_vs_close": 0.4732,
+   "ic_vs_maxGain": 0.1494,
+   "ic_vs_execEdge": 0.3383
+  },
+  {
+   "feature": "rule",
+   "ic_vs_close": 0.2856,
+   "ic_vs_maxGain": -0.0143,
+   "ic_vs_execEdge": 0.3189
+  },
+  {
+   "feature": "washRatio",
+   "ic_vs_close": -0.3051,
+   "ic_vs_maxGain": -0.3319,
+   "ic_vs_execEdge": -0.3036
+  },
+  {
+   "feature": "amplitude",
+   "ic_vs_close": 0.363,
+   "ic_vs_maxGain": 0.5381,
+   "ic_vs_execEdge": 0.2736
+  },
+  {
+   "feature": "recoverSpd",
+   "ic_vs_close": 0.2452,
+   "ic_vs_maxGain": 0.2578,
+   "ic_vs_execEdge": 0.2634
+  },
+  {
+   "feature": "swing",
+   "ic_vs_close": 0.2064,
+   "ic_vs_maxGain": 0.2129,
+   "ic_vs_execEdge": 0.2302
+  },
+  {
+   "feature": "washDepth",
+   "ic_vs_close": -0.2141,
+   "ic_vs_maxGain": -0.3079,
+   "ic_vs_execEdge": -0.226
+  },
+  {
+   "feature": "fundRatio",
+   "ic_vs_close": 0.3459,
+   "ic_vs_maxGain": -0.2409,
+   "ic_vs_execEdge": 0.2037
+  },
+  {
+   "feature": "amtRank",
+   "ic_vs_close": 0.0843,
+   "ic_vs_maxGain": -0.0934,
+   "ic_vs_execEdge": 0.1717
+  },
+  {
+   "feature": "pulses",
+   "ic_vs_close": 0.0933,
+   "ic_vs_maxGain": 0.2181,
+   "ic_vs_execEdge": 0.1336
+  },
+  {
+   "feature": "vp",
+   "ic_vs_close": 0.0964,
+   "ic_vs_maxGain": 0.0725,
+   "ic_vs_execEdge": 0.1286
+  },
+  {
+   "feature": "turnover",
+   "ic_vs_close": 0.1773,
+   "ic_vs_maxGain": 0.1754,
+   "ic_vs_execEdge": 0.1273
+  },
+  {
+   "feature": "breadth",
+   "ic_vs_close": 0.0633,
+   "ic_vs_maxGain": -0.1687,
+   "ic_vs_execEdge": 0.1
+  },
+  {
+   "feature": "riseSpeed",
+   "ic_vs_close": 0.1459,
+   "ic_vs_maxGain": 0.0666,
+   "ic_vs_execEdge": 0.0926
+  },
+  {
+   "feature": "riseAccel",
+   "ic_vs_close": -0.0958,
+   "ic_vs_maxGain": -0.0856,
+   "ic_vs_execEdge": -0.0624
+  },
+  {
+   "feature": "gap",
+   "ic_vs_close": 0.1225,
+   "ic_vs_maxGain": -0.4915,
+   "ic_vs_execEdge": 0.0539
+  },
+  {
+   "feature": "volStruct",
+   "ic_vs_close": -0.0202,
+   "ic_vs_maxGain": 0.0303,
+   "ic_vs_execEdge": 0.0019
+  },
+  {
+   "feature": "secZdf",
+   "ic_vs_close": null,
+   "ic_vs_maxGain": null,
+   "ic_vs_execEdge": null
+  },
+  {
+   "feature": "secRank",
+   "ic_vs_close": null,
+   "ic_vs_maxGain": null,
+   "ic_vs_execEdge": null
+  }
+ ],
+ "modelIC": {
+  "score_vs_close": 0.2856,
+  "score_vs_execEdge": 0.3189,
+  "prob_vs_close": 0.5541,
+  "prob_vs_execEdge": 0.454
+ },
+ "byTag": [
+  {
+   "label": "放量脉冲×11",
+   "n": 31,
+   "looseHitPct": 80.6,
+   "execWinPct": 64.5,
+   "execEdgePct": 93.5,
+   "execLossPct": 3.2,
+   "closeLimitPct": 9.7,
+   "avgClose": 7.01,
+   "avgMaxGain": 5.98,
+   "avgMaxDD": -0.8
+  },
+  {
+   "label": "无前日参照",
+   "n": 125,
+   "looseHitPct": 78.4,
+   "execWinPct": 32,
+   "execEdgePct": 91.2,
+   "execLossPct": 1.6,
+   "closeLimitPct": 53.6,
+   "avgClose": 8.31,
+   "avgMaxGain": 2.31,
+   "avgMaxDD": -0.45
+  },
+  {
+   "label": "放量脉冲×14",
+   "n": 15,
+   "looseHitPct": 80,
+   "execWinPct": 80,
+   "execEdgePct": 86.7,
+   "execLossPct": 0,
+   "closeLimitPct": 13.3,
+   "avgClose": 6.98,
+   "avgMaxGain": 8.82,
+   "avgMaxDD": -0.61
+  },
+  {
+   "label": "放量脉冲×10",
+   "n": 46,
+   "looseHitPct": 65.2,
+   "execWinPct": 78.3,
+   "execEdgePct": 84.8,
+   "execLossPct": 2.2,
+   "closeLimitPct": 13,
+   "avgClose": 5.99,
+   "avgMaxGain": 6.56,
+   "avgMaxDD": -0.76
+  },
+  {
+   "label": "上攻放量",
+   "n": 71,
+   "looseHitPct": 84.5,
+   "execWinPct": 76.1,
+   "execEdgePct": 77.5,
+   "execLossPct": 11.3,
+   "closeLimitPct": 42.3,
+   "avgClose": 7.43,
+   "avgMaxGain": 7.28,
+   "avgMaxDD": -1.26
+  },
+  {
+   "label": "放量脉冲×13",
+   "n": 16,
+   "looseHitPct": 75,
+   "execWinPct": 87.5,
+   "execEdgePct": 75,
+   "execLossPct": 6.3,
+   "closeLimitPct": 6.3,
+   "avgClose": 6.85,
+   "avgMaxGain": 6.84,
+   "avgMaxDD": -1.02
+  },
+  {
+   "label": "量化攻击结构",
+   "n": 203,
+   "looseHitPct": 56.2,
+   "execWinPct": 63.1,
+   "execEdgePct": 71.4,
+   "execLossPct": 3,
+   "closeLimitPct": 19.7,
+   "avgClose": 5.81,
+   "avgMaxGain": 5.36,
+   "avgMaxDD": -0.8
+  },
+  {
+   "label": "脉冲递升",
+   "n": 463,
+   "looseHitPct": 61.6,
+   "execWinPct": 67.8,
+   "execEdgePct": 69.3,
+   "execLossPct": 7.8,
+   "closeLimitPct": 21.6,
+   "avgClose": 5.92,
+   "avgMaxGain": 5.87,
+   "avgMaxDD": -1.27
+  },
+  {
+   "label": "量价同步",
+   "n": 128,
+   "looseHitPct": 50.8,
+   "execWinPct": 66.4,
+   "execEdgePct": 66.4,
+   "execLossPct": 2.3,
+   "closeLimitPct": 14.8,
+   "avgClose": 5.43,
+   "avgMaxGain": 5.58,
+   "avgMaxDD": -0.81
+  },
+  {
+   "label": "放量脉冲×8",
+   "n": 61,
+   "looseHitPct": 57.4,
+   "execWinPct": 65.6,
+   "execEdgePct": 65.6,
+   "execLossPct": 8.2,
+   "closeLimitPct": 13.1,
+   "avgClose": 5.41,
+   "avgMaxGain": 4.8,
+   "avgMaxDD": -1.34
+  },
+  {
+   "label": "放量脉冲×9",
+   "n": 49,
+   "looseHitPct": 59.2,
+   "execWinPct": 71.4,
+   "execEdgePct": 65.3,
+   "execLossPct": 10.2,
+   "closeLimitPct": 18.4,
+   "avgClose": 5.31,
+   "avgMaxGain": 6.39,
+   "avgMaxDD": -1.33
+  },
+  {
+   "label": "无洗盘直拉型",
+   "n": 882,
+   "looseHitPct": 56.7,
+   "execWinPct": 65.3,
+   "execEdgePct": 64.1,
+   "execLossPct": 4.2,
+   "closeLimitPct": 22.8,
+   "avgClose": 5.35,
+   "avgMaxGain": 5.44,
+   "avgMaxDD": -0.93
+  },
+  {
+   "label": "脉冲后守稳",
+   "n": 272,
+   "looseHitPct": 53.3,
+   "execWinPct": 54,
+   "execEdgePct": 63.6,
+   "execLossPct": 7,
+   "closeLimitPct": 21.7,
+   "avgClose": 5.13,
+   "avgMaxGain": 4.52,
+   "avgMaxDD": -0.98
+  },
+  {
+   "label": "放量脉冲×6",
+   "n": 91,
+   "looseHitPct": 57.1,
+   "execWinPct": 59.3,
+   "execEdgePct": 59.3,
+   "execLossPct": 15.4,
+   "closeLimitPct": 16.5,
+   "avgClose": 5.01,
+   "avgMaxGain": 5.17,
+   "avgMaxDD": -1.82
+  },
+  {
+   "label": "整理缩量",
+   "n": 857,
+   "looseHitPct": 51,
+   "execWinPct": 61.5,
+   "execEdgePct": 57.6,
+   "execLossPct": 8.1,
+   "closeLimitPct": 18.7,
+   "avgClose": 4.8,
+   "avgMaxGain": 4.88,
+   "avgMaxDD": -1.26
+  },
+  {
+   "label": "防守位保住",
+   "n": 819,
+   "looseHitPct": 54.1,
+   "execWinPct": 62.8,
+   "execEdgePct": 56.4,
+   "execLossPct": 11.4,
+   "closeLimitPct": 18.2,
+   "avgClose": 4.69,
+   "avgMaxGain": 5.25,
+   "avgMaxDD": -1.58
+  },
+  {
+   "label": "放量脉冲×7",
+   "n": 61,
+   "looseHitPct": 49.2,
+   "execWinPct": 65.6,
+   "execEdgePct": 52.5,
+   "execLossPct": 9.8,
+   "closeLimitPct": 14.8,
+   "avgClose": 4.88,
+   "avgMaxGain": 5.34,
+   "avgMaxDD": -1.4
+  },
+  {
+   "label": "放量脉冲×5",
+   "n": 98,
+   "looseHitPct": 42.9,
+   "execWinPct": 52,
+   "execEdgePct": 51,
+   "execLossPct": 9.2,
+   "closeLimitPct": 13.3,
+   "avgClose": 4.27,
+   "avgMaxGain": 4.45,
+   "avgMaxDD": -1.39
+  },
+  {
+   "label": "放量脉冲×2",
+   "n": 102,
+   "looseHitPct": 55.9,
+   "execWinPct": 61.8,
+   "execEdgePct": 50,
+   "execLossPct": 11.8,
+   "closeLimitPct": 26.5,
+   "avgClose": 4.8,
+   "avgMaxGain": 4.65,
+   "avgMaxDD": -1.58
+  },
+  {
+   "label": "放量脉冲×4",
+   "n": 108,
+   "looseHitPct": 51.9,
+   "execWinPct": 56.5,
+   "execEdgePct": 48.1,
+   "execLossPct": 15.7,
+   "closeLimitPct": 24.1,
+   "avgClose": 4.6,
+   "avgMaxGain": 4.76,
+   "avgMaxDD": -2.12
+  },
+  {
+   "label": "放量脉冲×3",
+   "n": 100,
+   "looseHitPct": 43,
+   "execWinPct": 61,
+   "execEdgePct": 46,
+   "execLossPct": 13,
+   "closeLimitPct": 24,
+   "avgClose": 3.48,
+   "avgMaxGain": 4.39,
+   "avgMaxDD": -1.57
+  },
+  {
+   "label": "防守位被破",
+   "n": 80,
+   "looseHitPct": 38.8,
+   "execWinPct": 93.8,
+   "execEdgePct": 41.3,
+   "execLossPct": 10,
+   "closeLimitPct": 13.8,
+   "avgClose": 3.87,
+   "avgMaxGain": 7.62,
+   "avgMaxDD": -1.28
+  },
+  {
+   "label": "深洗盘+巨量承接",
+   "n": 71,
+   "looseHitPct": 49.3,
+   "execWinPct": 32.4,
+   "execEdgePct": 16.9,
+   "execLossPct": 69,
+   "closeLimitPct": 11.3,
+   "avgClose": 2.45,
+   "avgMaxGain": 2.51,
+   "avgMaxDD": -5.93
+  },
+  {
+   "label": "洗盘后创新低",
+   "n": 130,
+   "looseHitPct": 34.6,
+   "execWinPct": 29.2,
+   "execEdgePct": 6.2,
+   "execLossPct": 46.2,
+   "closeLimitPct": 4.6,
+   "avgClose": 0.56,
+   "avgMaxGain": 2.2,
+   "avgMaxDD": -4.7
+  },
+  {
+   "label": "已翻绿",
+   "n": 89,
+   "looseHitPct": 12.4,
+   "execWinPct": 47.2,
+   "execEdgePct": 0,
+   "execLossPct": 32.6,
+   "closeLimitPct": 0,
+   "avgClose": -1.52,
+   "avgMaxGain": 3.27,
+   "avgMaxDD": -3.72
+  }
+ ],
+ "bySignal": [
+  {
+   "label": "急拉N%/分",
+   "n": 16,
+   "looseHitPct": 100,
+   "execWinPct": 81.3,
+   "execEdgePct": 93.8,
+   "execLossPct": 6.3,
+   "closeLimitPct": 100,
+   "avgClose": 10.63,
+   "avgMaxGain": 8.45,
+   "avgMaxDD": -1.15
+  },
+  {
+   "label": "板块N家涨停",
+   "n": 89,
+   "looseHitPct": 95.5,
+   "execWinPct": 65.2,
+   "execEdgePct": 86.5,
+   "execLossPct": 10.1,
+   "closeLimitPct": 59.6,
+   "avgClose": 8.55,
+   "avgMaxGain": 5.67,
+   "avgMaxDD": -1.28
+  },
+  {
+   "label": "炸板×N",
+   "n": 382,
+   "looseHitPct": 95,
+   "execWinPct": 82.7,
+   "execEdgePct": 78.8,
+   "execLossPct": 16,
+   "closeLimitPct": 37.4,
+   "avgClose": 7.09,
+   "avgMaxGain": 7.65,
+   "avgMaxDD": -1.77
+  },
+  {
+   "label": "量化攻击结构",
+   "n": 203,
+   "looseHitPct": 56.2,
+   "execWinPct": 63.1,
+   "execEdgePct": 71.4,
+   "execLossPct": 3,
+   "closeLimitPct": 19.7,
+   "avgClose": 5.81,
+   "avgMaxGain": 5.36,
+   "avgMaxDD": -0.8
+  },
+  {
+   "label": "高开+N%",
+   "n": 277,
+   "looseHitPct": 67.9,
+   "execWinPct": 45.5,
+   "execEdgePct": 69,
+   "execLossPct": 18.1,
+   "closeLimitPct": 25.3,
+   "avgClose": 5.99,
+   "avgMaxGain": 3.36,
+   "avgMaxDD": -2.08
+  },
+  {
+   "label": "低点连续抬高",
+   "n": 836,
+   "looseHitPct": 53.5,
+   "execWinPct": 63.8,
+   "execEdgePct": 62.1,
+   "execLossPct": 6.5,
+   "closeLimitPct": 20.3,
+   "avgClose": 5.17,
+   "avgMaxGain": 5.31,
+   "avgMaxDD": -1.14
+  },
+  {
+   "label": "N分钟收复竞价价",
+   "n": 982,
+   "looseHitPct": 55.9,
+   "execWinPct": 63.6,
+   "execEdgePct": 61.8,
+   "execLossPct": 7.1,
+   "closeLimitPct": 22.7,
+   "avgClose": 5.24,
+   "avgMaxGain": 5.24,
+   "avgMaxDD": -1.16
+  },
+  {
+   "label": "放量脉冲×N",
+   "n": 817,
+   "looseHitPct": 55.4,
+   "execWinPct": 63.6,
+   "execEdgePct": 59,
+   "execLossPct": 10.4,
+   "closeLimitPct": 18.6,
+   "avgClose": 5,
+   "avgMaxGain": 5.3,
+   "avgMaxDD": -1.46
+  },
+  {
+   "label": "深洗盘N%·承接N倍",
+   "n": 74,
+   "looseHitPct": 51.4,
+   "execWinPct": 32.4,
+   "execEdgePct": 17.6,
+   "execLossPct": 68.9,
+   "closeLimitPct": 13.5,
+   "avgClose": 2.52,
+   "avgMaxGain": 2.52,
+   "avgMaxDD": -6.01
+  }
+ ],
+ "bySrc": [
+  {
+   "label": "涨停",
+   "n": 68,
+   "looseHitPct": 100,
+   "execWinPct": 33.8,
+   "execEdgePct": 97.1,
+   "execLossPct": 2.9,
+   "closeLimitPct": 100,
+   "avgClose": 10.74,
+   "avgMaxGain": 2.08,
+   "avgMaxDD": -0.38
+  },
+  {
+   "label": "炸板",
+   "n": 381,
+   "looseHitPct": 95,
+   "execWinPct": 82.7,
+   "execEdgePct": 78.7,
+   "execLossPct": 16,
+   "closeLimitPct": 37.3,
+   "avgClose": 7.08,
+   "avgMaxGain": 7.65,
+   "avgMaxDD": -1.78
+  },
+  {
+   "label": "成交额榜",
+   "n": 541,
+   "looseHitPct": 25.5,
+   "execWinPct": 51.2,
+   "execEdgePct": 43.8,
+   "execLossPct": 6.7,
+   "closeLimitPct": 3.1,
+   "avgClose": 3.12,
+   "avgMaxGain": 3.79,
+   "avgMaxDD": -1.29
+  },
+  {
+   "label": "自选",
+   "n": 22,
+   "looseHitPct": 13.6,
+   "execWinPct": 40.9,
+   "execEdgePct": 18.2,
+   "execLossPct": 18.2,
+   "closeLimitPct": 0,
+   "avgClose": 1.99,
+   "avgMaxGain": 2.93,
+   "avgMaxDD": -1.98
+  },
+  {
+   "label": "?",
+   "n": 12,
+   "looseHitPct": 8.3,
+   "execWinPct": 41.7,
+   "execEdgePct": 16.7,
+   "execLossPct": 0,
+   "closeLimitPct": 0,
+   "avgClose": 1.93,
+   "avgMaxGain": 2.35,
+   "avgMaxDD": -0.72
+  }
+ ],
+ "bySecHot": [
+  {
+   "label": "secHot极低(z<=-0.5)",
+   "n": 756,
+   "looseHitPct": 41.3,
+   "execWinPct": 58.1,
+   "execEdgePct": 49.5,
+   "execLossPct": 10.3,
+   "closeLimitPct": 11,
+   "avgClose": 3.87,
+   "avgMaxGain": 4.59,
+   "avgMaxDD": -1.52
+  },
+  {
+   "label": "secHot低(-0.5~0.5)",
+   "n": 179,
+   "looseHitPct": 97.8,
+   "execWinPct": 73.7,
+   "execEdgePct": 88.3,
+   "execLossPct": 8.9,
+   "closeLimitPct": 50.8,
+   "avgClose": 8.37,
+   "avgMaxGain": 6.8,
+   "avgMaxDD": -1.08
+  },
+  {
+   "label": "secHot中(0.5~1.5)",
+   "n": 38,
+   "looseHitPct": 100,
+   "execWinPct": 71.1,
+   "execEdgePct": 92.1,
+   "execLossPct": 7.9,
+   "closeLimitPct": 65.8,
+   "avgClose": 8.58,
+   "avgMaxGain": 6.63,
+   "avgMaxDD": -1.15
+  },
+  {
+   "label": "secHot高(z>1.5)",
+   "n": 51,
+   "looseHitPct": 92.2,
+   "execWinPct": 60.8,
+   "execEdgePct": 82.4,
+   "execLossPct": 11.8,
+   "closeLimitPct": 54.9,
+   "avgClose": 8.53,
+   "avgMaxGain": 4.96,
+   "avgMaxDD": -1.38
+  }
+ ],
+ "byBreadth": [
+  {
+   "label": "breadth极冷",
+   "n": 35,
+   "looseHitPct": 94.3,
+   "execWinPct": 85.7,
+   "execEdgePct": 85.7,
+   "execLossPct": 8.6,
+   "closeLimitPct": 94.3,
+   "avgClose": 9.43,
+   "avgMaxGain": 7.48,
+   "avgMaxDD": -1.05
+  },
+  {
+   "label": "breadth冷",
+   "n": 178,
+   "looseHitPct": 52.8,
+   "execWinPct": 72.5,
+   "execEdgePct": 50.6,
+   "execLossPct": 11.8,
+   "closeLimitPct": 13.5,
+   "avgClose": 4.23,
+   "avgMaxGain": 5.92,
+   "avgMaxDD": -1.55
+  },
+  {
+   "label": "breadth中",
+   "n": 111,
+   "looseHitPct": 62.2,
+   "execWinPct": 77.5,
+   "execEdgePct": 60.4,
+   "execLossPct": 14.4,
+   "closeLimitPct": 23.4,
+   "avgClose": 4.81,
+   "avgMaxGain": 6.58,
+   "avgMaxDD": -1.5
+  },
+  {
+   "label": "breadth热",
+   "n": 700,
+   "looseHitPct": 53.7,
+   "execWinPct": 54.9,
+   "execEdgePct": 60.3,
+   "execLossPct": 9,
+   "closeLimitPct": 20.6,
+   "avgClose": 5.1,
+   "avgMaxGain": 4.5,
+   "avgMaxDD": -1.39
+  }
+ ],
+ "byLbc": [
+  {
+   "label": "lbc=0/无",
+   "n": 675,
+   "looseHitPct": 68.1,
+   "execWinPct": 70.8,
+   "execEdgePct": 75.1,
+   "execLossPct": 6.2,
+   "closeLimitPct": 22.8,
+   "avgClose": 6.32,
+   "avgMaxGain": 6.15,
+   "avgMaxDD": -1.05
+  },
+  {
+   "label": "lbc首板",
+   "n": 338,
+   "looseHitPct": 29.9,
+   "execWinPct": 44.7,
+   "execEdgePct": 27.2,
+   "execLossPct": 17.8,
+   "closeLimitPct": 18.3,
+   "avgClose": 2.4,
+   "avgMaxGain": 3.09,
+   "avgMaxDD": -2.19
+  }
+ ],
+ "byZbc": [
+  {
+   "label": "zbc=0无炸板",
+   "n": 600,
+   "looseHitPct": 27.8,
+   "execWinPct": 49.8,
+   "execEdgePct": 44.7,
+   "execLossPct": 6.7,
+   "closeLimitPct": 7,
+   "avgClose": 3.38,
+   "avgMaxGain": 3.65,
+   "avgMaxDD": -1.26
+  },
+  {
+   "label": "zbc炸2次",
+   "n": 190,
+   "looseHitPct": 91.6,
+   "execWinPct": 72.1,
+   "execEdgePct": 71.6,
+   "execLossPct": 20.5,
+   "closeLimitPct": 36.3,
+   "avgClose": 6.47,
+   "avgMaxGain": 6.67,
+   "avgMaxDD": -2.12
+  },
+  {
+   "label": "zbc炸3次+",
+   "n": 234,
+   "looseHitPct": 98.7,
+   "execWinPct": 82.5,
+   "execEdgePct": 87.6,
+   "execLossPct": 10.3,
+   "closeLimitPct": 49.6,
+   "avgClose": 8.25,
+   "avgMaxGain": 7.42,
+   "avgMaxDD": -1.26
+  }
+ ],
+ "byDay": [
+  {
+   "label": "20260827",
+   "n": 125,
+   "looseHitPct": 78.4,
+   "execWinPct": 32,
+   "execEdgePct": 91.2,
+   "execLossPct": 1.6,
+   "closeLimitPct": 53.6,
+   "avgClose": 8.31,
+   "avgMaxGain": 2.31,
+   "avgMaxDD": -0.45
+  },
+  {
+   "label": "20260828",
+   "n": 67,
+   "looseHitPct": 37.3,
+   "execWinPct": 62.7,
+   "execEdgePct": 37.3,
+   "execLossPct": 14.9,
+   "closeLimitPct": 10.4,
+   "avgClose": 2.8,
+   "avgMaxGain": 4.55,
+   "avgMaxDD": -2.1
+  },
+  {
+   "label": "20260831",
+   "n": 105,
+   "looseHitPct": 60,
+   "execWinPct": 79,
+   "execEdgePct": 54.3,
+   "execLossPct": 19,
+   "closeLimitPct": 23.8,
+   "avgClose": 5.31,
+   "avgMaxGain": 7.09,
+   "avgMaxDD": -1.82
+  },
+  {
+   "label": "20260901",
+   "n": 50,
+   "looseHitPct": 44,
+   "execWinPct": 68,
+   "execEdgePct": 54,
+   "execLossPct": 8,
+   "closeLimitPct": 26,
+   "avgClose": 4.93,
+   "avgMaxGain": 5.71,
+   "avgMaxDD": -1.47
+  },
+  {
+   "label": "20260902",
+   "n": 61,
+   "looseHitPct": 45.9,
+   "execWinPct": 80.3,
+   "execEdgePct": 36.1,
+   "execLossPct": 19.7,
+   "closeLimitPct": 23,
+   "avgClose": 3.56,
+   "avgMaxGain": 6.2,
+   "avgMaxDD": -2.23
+  },
+  {
+   "label": "20260903",
+   "n": 98,
+   "looseHitPct": 57.1,
+   "execWinPct": 74.5,
+   "execEdgePct": 56.1,
+   "execLossPct": 15.3,
+   "closeLimitPct": 15.3,
+   "avgClose": 4.39,
+   "avgMaxGain": 6.07,
+   "avgMaxDD": -1.54
+  },
+  {
+   "label": "20260904",
+   "n": 100,
+   "looseHitPct": 59,
+   "execWinPct": 71,
+   "execEdgePct": 55,
+   "execLossPct": 11,
+   "closeLimitPct": 12,
+   "avgClose": 4.26,
+   "avgMaxGain": 5.95,
+   "avgMaxDD": -1.6
+  },
+  {
+   "label": "20260907",
+   "n": 116,
+   "looseHitPct": 69,
+   "execWinPct": 53.4,
+   "execEdgePct": 83.6,
+   "execLossPct": 0.9,
+   "closeLimitPct": 22.4,
+   "avgClose": 7.07,
+   "avgMaxGain": 4.67,
+   "avgMaxDD": -0.77
+  },
+  {
+   "label": "20260908",
+   "n": 112,
+   "looseHitPct": 47.3,
+   "execWinPct": 58.9,
+   "execEdgePct": 58.9,
+   "execLossPct": 4.5,
+   "closeLimitPct": 16.1,
+   "avgClose": 4.29,
+   "avgMaxGain": 4.78,
+   "avgMaxDD": -1.27
+  },
+  {
+   "label": "20260909",
+   "n": 108,
+   "looseHitPct": 47.2,
+   "execWinPct": 45.4,
+   "execEdgePct": 52.8,
+   "execLossPct": 9.3,
+   "closeLimitPct": 16.7,
+   "avgClose": 4.46,
+   "avgMaxGain": 4.33,
+   "avgMaxDD": -1.56
+  },
+  {
+   "label": "20260910",
+   "n": 82,
+   "looseHitPct": 45.1,
+   "execWinPct": 73.2,
+   "execEdgePct": 41.5,
+   "execLossPct": 15.9,
+   "closeLimitPct": 14.6,
+   "avgClose": 3.67,
+   "avgMaxGain": 5.58,
+   "avgMaxDD": -1.75
+  }
+ ],
+ "byAlertTime": [
+  {
+   "label": "报警<10:00",
+   "n": 16,
+   "looseHitPct": 50,
+   "execWinPct": 18.8,
+   "execEdgePct": 56.3,
+   "execLossPct": 18.8,
+   "closeLimitPct": 0,
+   "avgClose": 3.59,
+   "avgMaxGain": 1.61,
+   "avgMaxDD": -2.64
+  },
+  {
+   "label": "报警10:00-11:30",
+   "n": 210,
+   "looseHitPct": 65.2,
+   "execWinPct": 26.2,
+   "execEdgePct": 79,
+   "execLossPct": 5.2,
+   "closeLimitPct": 33.3,
+   "avgClose": 6.89,
+   "avgMaxGain": 2.06,
+   "avgMaxDD": -1.11
+  },
+  {
+   "label": "报警13:00-14:00",
+   "n": 38,
+   "looseHitPct": 50,
+   "execWinPct": 5.3,
+   "execEdgePct": 68.4,
+   "execLossPct": 0,
+   "closeLimitPct": 2.6,
+   "avgClose": 5.29,
+   "avgMaxGain": 0.86,
+   "avgMaxDD": -0.94
+  },
+  {
+   "label": "报警>=14:00",
+   "n": 18,
+   "looseHitPct": 44.4,
+   "execWinPct": 5.6,
+   "execEdgePct": 50,
+   "execLossPct": 16.7,
+   "closeLimitPct": 5.6,
+   "avgClose": 3.9,
+   "avgMaxGain": 0.63,
+   "avgMaxDD": -1.45
+  }
+ ],
+ "byBoard": [
+  {
+   "label": "创业板20cm(sz30)",
+   "n": 211,
+   "looseHitPct": 37,
+   "execWinPct": 54,
+   "execEdgePct": 46.4,
+   "execLossPct": 8.5,
+   "closeLimitPct": 5.2,
+   "avgClose": 4.64,
+   "avgMaxGain": 4.49,
+   "avgMaxDD": -1.36
+  },
+  {
+   "label": "主板10cm(sh60/sz00)",
+   "n": 813,
+   "looseHitPct": 60.8,
+   "execWinPct": 63.3,
+   "execEdgePct": 62.9,
+   "execLossPct": 10.5,
+   "closeLimitPct": 26.6,
+   "avgClose": 5.17,
+   "avgMaxGain": 5.22,
+   "avgMaxDD": -1.43
+  },
+  {
+   "label": "科创板688(买不了)",
+   "n": 0
+  }
+ ],
+ "combos": [
+  {
+   "label": "A: score>=80（现报警门）",
+   "n": 142,
+   "looseHitPct": 66.9,
+   "execWinPct": 44.4,
+   "execEdgePct": 73.2,
+   "execLossPct": 12,
+   "closeLimitPct": 16.2,
+   "avgClose": 6.31,
+   "avgMaxGain": 3.62,
+   "avgMaxDD": -1.83
+  },
+  {
+   "label": "B: score>=80 且 prob>=0.75（双门）",
+   "n": 54,
+   "looseHitPct": 94.4,
+   "execWinPct": 66.7,
+   "execEdgePct": 88.9,
+   "execLossPct": 9.3,
+   "closeLimitPct": 33.3,
+   "avgClose": 8.4,
+   "avgMaxGain": 5.7,
+   "avgMaxDD": -1.76
+  },
+  {
+   "label": "C: score>=80 且 20cm",
+   "n": 30,
+   "looseHitPct": 73.3,
+   "execWinPct": 33.3,
+   "execEdgePct": 80,
+   "execLossPct": 3.3,
+   "closeLimitPct": 3.3,
+   "avgClose": 7.89,
+   "avgMaxGain": 3.02,
+   "avgMaxDD": -1.16
+  },
+  {
+   "label": "D: C 且 无炸板",
+   "n": 26,
+   "looseHitPct": 69.2,
+   "execWinPct": 23.1,
+   "execEdgePct": 76.9,
+   "execLossPct": 3.8,
+   "closeLimitPct": 0,
+   "avgClose": 6.56,
+   "avgMaxGain": 1.94,
+   "avgMaxDD": -1.09
+  },
+  {
+   "label": "E: score>=80 且 实际报警过",
+   "n": 82,
+   "looseHitPct": 57.3,
+   "execWinPct": 19.5,
+   "execEdgePct": 67.1,
+   "execLossPct": 9.8,
+   "closeLimitPct": 3.7,
+   "avgClose": 5.34,
+   "avgMaxGain": 1.75,
+   "avgMaxDD": -1.73
+  },
+  {
+   "label": "F: score>=85+20cm+板块热",
+   "n": 0
+  },
+  {
+   "label": "G: score>=80 但结果差（假阳性样本）",
+   "n": 47,
+   "looseHitPct": 0,
+   "execWinPct": 19.1,
+   "execEdgePct": 36.2,
+   "execLossPct": 19.1,
+   "closeLimitPct": 0,
+   "avgClose": 2.5,
+   "avgMaxGain": 1.65,
+   "avgMaxDD": -2.37
+  }
+ ]
+}
